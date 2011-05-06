@@ -2,7 +2,7 @@ package ca.etsmtl.huffman;
 
 public class BinaryTree {
 	// Node class
-	private class Node {
+	public class Node {
 		public HuffmanNode data; // node data
 		public Node right; // right child
 		public Node left; // left child
@@ -14,7 +14,7 @@ public class BinaryTree {
 		}
 	}
 
-	private Node root;
+	public Node root;
 	private int size;
 
 	public BinaryTree() {
