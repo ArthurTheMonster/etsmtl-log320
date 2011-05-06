@@ -8,10 +8,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import ca.etsmtl.huffman.BinaryTree.Node;
 
 public class HuffmanCompress {
 
@@ -98,14 +101,52 @@ public class HuffmanCompress {
 	}
 
 	private static void createTree() {
-		for (HuffmanNode huffmanNode : SORTED_FREQUENCIES) {
-			BINARY_TREE.insert(huffmanNode);
+		Iterator<HuffmanNode> it = SORTED_FREQUENCIES.iterator();
+		
+		HuffmanNode previousNode = null;
+		HuffmanNode currentNode = null;
+		HuffmanNode newNode = null;
+		
+		if (it.hasNext()) {
+			currentNode = it.next();
+			BINARY_TREE.insert(currentNode);
 		}
+		while (it.hasNext()) {
+			previousNode = currentNode;
+			currentNode = it.next();
+							
+			// We create a new node with a frequency equal to the sum of the last two nodes
+			newNode = new HuffmanNode(-1, previousNode.frequency + currentNode.frequency);
+			
+			previousNode = currentNode;
+			currentNode = newNode;
+
+			BINARY_TREE.insert(previousNode);
+			BINARY_TREE.insert(currentNode);
+		}
+
+		/*for (HuffmanNode huffmanNode : SORTED_FREQUENCIES) {
+			SORTED_FREQUENCIES.huffmanNode.
+			BINARY_TREE.insert(huffmanNode);
+		}*/
 	}
 	
 	private static void encodeTree() {
-		// TODO Auto-generated method stub
-		
+		BINARY_TREE.printTree();
+	
+		Node root = BINARY_TREE.root;
+		encodeNode(root, "");	
+	}
+	
+	private static void encodeNode(Node node, String path) {
+		if (node != null) {
+			encodeNode(node.left, path + "0");
+			// We write the path of that letter in the tree (0 = left, 1 = right)
+			// RESULT += 
+			// Then we write the character
+			// RESULT +=
+			encodeNode(node.right,  path + "1");
+		}
 	}
 
 	private static void writeFile(String fileName) {
@@ -120,5 +161,15 @@ public class HuffmanCompress {
 			e.printStackTrace();
 		}
 	}
+	
+	// http://snippets.dzone.com/posts/show/93
+    public static byte[] intToByteArray(int value) {
+        byte[] b = new byte[4];
+        for (int i = 0; i < 4; i++) {
+            int offset = (b.length - 1 - i) * 8;
+            b[i] = (byte) ((value >>> offset) & 0xFF);
+        }
+        return b;
+    }
 	
 }
