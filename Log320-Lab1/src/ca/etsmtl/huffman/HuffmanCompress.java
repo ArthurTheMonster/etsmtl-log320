@@ -7,54 +7,61 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import ca.etsmtl.huffman.BinaryTree.Node;
 
 public class HuffmanCompress {
 
 	private static final String TXT_EXTENSION = "txt";
 	private static final String HUF_EXTENSION = "huf";
 	
-	private static byte[] fileBytes;
+	private static String FILE_NAME;
+	
+	private static byte[] FILE_BYTES;
 
 	private static final Map<Integer, Integer> FREQUENCIES = new LinkedHashMap<Integer, Integer>();
 	
 	private static final List<HuffmanNode> SORTED_FREQUENCIES = new ArrayList<HuffmanNode>();
 	
-	private static final BinaryTree BINARY_TREE = new BinaryTree();
+	private static HuffmanNode ROOT_NODE = new HuffmanNode();
 	
-	private static final String RESULT = new String();
+	private static final Map<Integer, String> ENCODED_CHARACTERS = new HashMap<Integer, String>();
 	
-	/*long before = Calendar.getInstance().getTimeInMillis();
-	long after = Calendar.getInstance().getTimeInMillis();
-	System.out.println((long) after - before);*/
+	private static StringBuilder RESULT = new StringBuilder();
 	
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
 		if (args.length > 0) {
-			String fileName = args[0];
-			if (fileName.endsWith(TXT_EXTENSION)) {
-				System.out.println("Compressing " + fileName);
+			String FILE_NAME = args[0];
+			if (FILE_NAME.endsWith(TXT_EXTENSION)) {
+				System.out.println("Compressing " + FILE_NAME);
 				
-				readFile(fileName);
+				long before = Calendar.getInstance().getTimeInMillis();
 				
-				createFrequencyTable(fileBytes);
+				readFile();
+				
+				createFrequencyTable();
 
 				sortFrequencyTable();
 
 				createTree();
-
+				
 				encodeTree();
 				
-				writeFile(fileName);
+				toResult();
+				
+				writeFile();
+				
+				long after = Calendar.getInstance().getTimeInMillis();
+				
+				System.out.println((long) after - before);
 			} else {
 				System.out.println("Can't compress file, extension is not " + TXT_EXTENSION);
 			}
@@ -63,13 +70,13 @@ public class HuffmanCompress {
 		}
 	}
 
-	private static void readFile(String fileName) {
-		File file = new File(fileName);
+	private static void readFile() {
+		File file = new File(FILE_NAME);
 		FileInputStream fileInputStream;
 		try {
 			fileInputStream = new FileInputStream(file);
-			fileBytes = new byte[(int) file.length()];
-			fileInputStream.read(fileBytes);
+			FILE_BYTES = new byte[(int) file.length()];
+			fileInputStream.read(FILE_BYTES);
 			fileInputStream.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -78,10 +85,10 @@ public class HuffmanCompress {
 		}
 	}
 
-	private static void createFrequencyTable(byte[] fileBytes) {
+	private static void createFrequencyTable() {
 		Integer integer;
 		Integer value;
-		for (byte b : fileBytes) {
+		for (byte b : FILE_BYTES) {
 			integer = new Integer(b);
 			value = FREQUENCIES.get(integer);
 			if (value != null) {
@@ -97,65 +104,56 @@ public class HuffmanCompress {
 			SORTED_FREQUENCIES.add(new HuffmanNode(entry.getKey(), entry.getValue()));
 		}
 		Collections.sort(SORTED_FREQUENCIES);
-		Collections.reverse(SORTED_FREQUENCIES);
+		//Collections.reverse(SORTED_FREQUENCIES);
 	}
-
+	
 	private static void createTree() {
-		Iterator<HuffmanNode> it = SORTED_FREQUENCIES.iterator();
-		
-		HuffmanNode previousNode = null;
-		HuffmanNode currentNode = null;
-		HuffmanNode newNode = null;
-		
-		if (it.hasNext()) {
-			currentNode = it.next();
-			BINARY_TREE.insert(currentNode);
-		}
-		while (it.hasNext()) {
-			previousNode = currentNode;
-			currentNode = it.next();
-							
-			// We create a new node with a frequency equal to the sum of the last two nodes
-			newNode = new HuffmanNode(-1, previousNode.frequency + currentNode.frequency);
+		while (SORTED_FREQUENCIES.size() > 1) {
+			HuffmanNode leftLeaf = SORTED_FREQUENCIES.remove(0);
+			HuffmanNode rightLeaf = SORTED_FREQUENCIES.remove(0);
+			HuffmanNode mergeNode = new HuffmanNode(-1, leftLeaf.frequency + rightLeaf.frequency, leftLeaf, rightLeaf);
+
+			int index = Collections.binarySearch(SORTED_FREQUENCIES, mergeNode);
 			
-			previousNode = currentNode;
-			currentNode = newNode;
-
-			BINARY_TREE.insert(previousNode);
-			BINARY_TREE.insert(currentNode);
+			if (index < 0) {
+				index = Math.abs(index)-1;
+			}
+			SORTED_FREQUENCIES.add(index, mergeNode);
 		}
-
-		/*for (HuffmanNode huffmanNode : SORTED_FREQUENCIES) {
-			SORTED_FREQUENCIES.huffmanNode.
-			BINARY_TREE.insert(huffmanNode);
-		}*/
+		ROOT_NODE = SORTED_FREQUENCIES.get(0);
 	}
 	
-	private static void encodeTree() {
-		BINARY_TREE.printTree();
-	
-		Node root = BINARY_TREE.root;
-		encodeNode(root, "");	
+	private static void encodeTree() { 
+		encodeTree(ROOT_NODE, "");
 	}
 	
-	private static void encodeNode(Node node, String path) {
-		if (node != null) {
-			encodeNode(node.left, path + "0");
-			// We write the path of that letter in the tree (0 = left, 1 = right)
-			// RESULT += 
-			// Then we write the character
-			// RESULT +=
-			encodeNode(node.right,  path + "1");
+	private static void encodeTree(HuffmanNode current, String position) {
+		if (current.value != -1) {
+			ENCODED_CHARACTERS.put(new Integer(current.value), position);
+		} else {
+			encodeTree(current.left, position + "0");
+			encodeTree(current.right, position + "1");
 		}
 	}
+	
+	private static void toResult() {
+		for (Entry<Integer, String> entry : ENCODED_CHARACTERS.entrySet()) {
+			RESULT.append(entry.getKey() + entry.getValue() + "\n");
+		}
+		RESULT.append("\n");
+		for (byte fileByte : FILE_BYTES) {
+			RESULT.append(ENCODED_CHARACTERS.get(new Integer(fileByte)) + "\n");
+		}
+		System.out.println(RESULT);
+	}
 
-	private static void writeFile(String fileName) {
-		String resultFileName = fileName.replaceAll(TXT_EXTENSION, HUF_EXTENSION);
+	private static void writeFile() {
+		String resultFileName = FILE_NAME.replaceAll(TXT_EXTENSION, HUF_EXTENSION);
 		FileWriter fileWriter;
 		try {
 			fileWriter = new FileWriter(resultFileName);
 	        BufferedWriter out = new BufferedWriter(fileWriter);
-		    out.write(RESULT);
+		    out.write(RESULT.toString());
 		    out.close();
 		} catch (IOException e) {
 			e.printStackTrace();
