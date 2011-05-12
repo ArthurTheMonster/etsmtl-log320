@@ -17,9 +17,11 @@ import java.util.Map.Entry;
 
 public class HuffmanCompress {
 
-	private static final String TXT_EXTENSION = "txt";
-	private static final String HUF_EXTENSION = "huf";
+	private static final String TXT_EXTENSION = ".txt";
+	private static final String HUF_EXTENSION = ".huf";
 	
+	private static final String LINE_SEPARATOR = System.getProperty("line.separator");
+
 	private static String FILE_NAME;
 	
 	private static byte[] FILE_BYTES;
@@ -39,7 +41,7 @@ public class HuffmanCompress {
 	 */
 	public static void main(String[] args) {
 		if (args.length > 0) {
-			String FILE_NAME = args[0];
+			FILE_NAME = args[0];
 			if (FILE_NAME.endsWith(TXT_EXTENSION)) {
 				System.out.println("Compressing " + FILE_NAME);
 				
@@ -104,7 +106,6 @@ public class HuffmanCompress {
 			SORTED_FREQUENCIES.add(new HuffmanNode(entry.getKey(), entry.getValue()));
 		}
 		Collections.sort(SORTED_FREQUENCIES);
-		//Collections.reverse(SORTED_FREQUENCIES);
 	}
 	
 	private static void createTree() {
@@ -138,11 +139,11 @@ public class HuffmanCompress {
 	
 	private static void toResult() {
 		for (Entry<Integer, String> entry : ENCODED_CHARACTERS.entrySet()) {
-			RESULT.append(entry.getKey() + entry.getValue() + "\n");
+			RESULT.append(entry.getKey() + "-" + entry.getValue() + LINE_SEPARATOR);
 		}
-		RESULT.append("\n");
+		RESULT.append(LINE_SEPARATOR);
 		for (byte fileByte : FILE_BYTES) {
-			RESULT.append(ENCODED_CHARACTERS.get(new Integer(fileByte)) + "\n");
+			RESULT.append(ENCODED_CHARACTERS.get(new Integer(fileByte)) + LINE_SEPARATOR);
 		}
 		System.out.println(RESULT);
 	}
