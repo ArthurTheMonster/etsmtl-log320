@@ -1,10 +1,9 @@
 package ca.etsmtl.huffman;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -20,8 +19,6 @@ public class HuffmanCompress {
 	private static final String TXT_EXTENSION = ".txt";
 	private static final String HUF_EXTENSION = ".huf";
 	
-	private static final String LINE_SEPARATOR = System.getProperty("line.separator");
-
 	private static String FILE_NAME;
 	
 	private static byte[] FILE_BYTES;
@@ -138,37 +135,66 @@ public class HuffmanCompress {
 	}
 	
 	private static void toResult() {
+		/*
+		 * The first 7 bits are reserved to count how many entries has the tree.
+		 * For each entry of the tree (we loop ?? (based on the number from the first 7 bits) time):
+		 * 		First 7 bits tell us the ASCII code
+		 * 		The next 4 bits tell us how many bit to read for the path (2^4=16 (path length)-> 2^16=65536 leaf in the tree)
+		 * 		The next ??  (based on the last number) bits tell us the path
+		 * The rest of the file is the text. We know that the prefix of a path will never have the same
+		 * value of an other path, so we don't need to know the length of each path.
+		 */
+		
+		//Note, limit of 2^7=128 different character in the text
+		int nbEntry = ENCODED_CHARACTERS.entrySet().size();
+		StringBuilder sNbEntry = new StringBuilder(Integer.toBinaryString(nbEntry));
+		while (sNbEntry.length() < 7) {
+			sNbEntry.insert(0, "0");
+		}
+		
+		RESULT.append(Integer.toBinaryString(nbEntry));
+		
 		for (Entry<Integer, String> entry : ENCODED_CHARACTERS.entrySet()) {
-			RESULT.append(entry.getKey() + "-" + entry.getValue() + LINE_SEPARATOR);
+			StringBuilder ASCII = new StringBuilder(Integer.toBinaryString(entry.getKey()));
+			while (ASCII.length() < 7) {
+				ASCII.insert(0, "0");
+			}
+
+			StringBuilder path = new StringBuilder(entry.getValue());
+			
+			StringBuilder sLength = new StringBuilder(Integer.toBinaryString(path.length()));
+			while (sLength.length() < 4) {
+				sLength.insert(0, "0");
+			}
+	
+			RESULT.append(ASCII.toString() + sLength.toString() + path.toString());
 		}
-		RESULT.append(LINE_SEPARATOR);
 		for (byte fileByte : FILE_BYTES) {
-			RESULT.append(ENCODED_CHARACTERS.get(new Integer(fileByte)) + LINE_SEPARATOR);
+			StringBuilder c = new StringBuilder(ENCODED_CHARACTERS.get(new Integer(fileByte)) );
+			RESULT.append(c);
 		}
-		System.out.println(RESULT);
 	}
 
 	private static void writeFile() {
 		String resultFileName = FILE_NAME.replaceAll(TXT_EXTENSION, HUF_EXTENSION);
-		FileWriter fileWriter;
 		try {
-			fileWriter = new FileWriter(resultFileName);
-	        BufferedWriter out = new BufferedWriter(fileWriter);
-		    out.write(RESULT.toString());
-		    out.close();
-		} catch (IOException e) {
+			FileOutputStream output = new FileOutputStream(resultFileName);  
+	
+			
+			while (RESULT.length() % 7 != 0) {
+				RESULT.append("0");
+			}
+			int i = 0;
+			while (i <RESULT.length()-7) {
+
+				Byte b = Byte.parseByte(RESULT.toString().substring(i, i+7),2);
+
+				output.write(b);
+				i+= 8;
+			}
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-	
-	// http://snippets.dzone.com/posts/show/93
-    public static byte[] intToByteArray(int value) {
-        byte[] b = new byte[4];
-        for (int i = 0; i < 4; i++) {
-            int offset = (b.length - 1 - i) * 8;
-            b[i] = (byte) ((value >>> offset) & 0xFF);
-        }
-        return b;
-    }
 	
 }
