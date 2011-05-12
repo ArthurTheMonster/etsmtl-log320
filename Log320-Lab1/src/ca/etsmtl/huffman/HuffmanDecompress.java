@@ -2,10 +2,13 @@ package ca.etsmtl.huffman;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,9 +22,7 @@ public class HuffmanDecompress {
 	
 	private static String FILE_NAME;
 	
-	private static final List<String> TREE_LINES = new ArrayList<String>();
-	
-	private static final List<String> TEXT_LINES = new ArrayList<String>();
+	private static byte[] FILE_BYTES;
 	
 	private static final Map<String, Character> TREE = new HashMap<String, Character>();
 	
@@ -34,13 +35,23 @@ public class HuffmanDecompress {
 		if (args.length > 0) {
 			FILE_NAME = args[0];
 			if (FILE_NAME.endsWith(HUF_EXTENSION)) {
+				System.out.println("Decompressing " + FILE_NAME);
+				
+				long before = Calendar.getInstance().getTimeInMillis();
+				
 				readFile();
 
 				decodeTree();
 				
+				System.out.println(TREE);
+				
 				decodeText();
 				
 				writeFile();
+				
+				long after = Calendar.getInstance().getTimeInMillis();
+				
+				System.out.println((long) after - before);
 			} else {
 				System.out.println("Can't compress file, extension is not " + HUF_EXTENSION);
 			}
@@ -51,38 +62,50 @@ public class HuffmanDecompress {
 	
 	private static void readFile() {
 		File file = new File(FILE_NAME);
+		FileInputStream fileInputStream;
 		try {
-			Scanner scanner = new Scanner(file);
-			boolean header = true;
-			while (scanner.hasNextLine()) {
-				String line = scanner.nextLine();
-				if (line.isEmpty()) {
-					header = false;
-				} else {
-					if (header) {
-						TREE_LINES.add(line);
-					} else {
-						TEXT_LINES.add(line);
-					}
-				}
-			}
-			scanner.close();
+			fileInputStream = new FileInputStream(file);
+			FILE_BYTES = new byte[(int) file.length()];
+			fileInputStream.read(FILE_BYTES);
+			fileInputStream.close();
 		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 	
 	private static void decodeTree() {
-		for (String treeLine : TREE_LINES) {
-			String[] node = treeLine.split("-");
-			TREE.put(node[1], new Character((char) new Integer(node[0]).intValue()));
+		int entriesNumber = FILE_BYTES[0] & 0xFF;
+		for (int i = 0; i < entriesNumber; i++) {
+			int character = FILE_BYTES[i * 3 + 1] & 0xFF;
+			int lenght = FILE_BYTES[i * 3 + 2] & 0xFF;
+			System.out.println(lenght);
+			int path = FILE_BYTES[i * 3 + 3] & 0xFF;
+			StringBuilder pathValue = new StringBuilder(Integer.toBinaryString(path));
+			while (pathValue.length() < lenght) {
+				pathValue.insert(0, "0");
+			}
+			TREE.put(pathValue.toString(), new Character((char) character));
+		}
+		StringBuilder character = new StringBuilder();
+		for (int i = entriesNumber * 3 + 1; i < FILE_BYTES.length; i++) {
+			StringBuilder text = new StringBuilder(Integer.toBinaryString(FILE_BYTES[i] & 0xFF));
+			while (text.length() < 8) {
+				text.insert(0, "0");
+			}
+			for (char c : text.toString().toCharArray()) {
+				character.append(c);
+				if (TREE.containsKey(character.toString())) {
+					RESULT.append(TREE.get(character.toString()));
+					character.setLength(0);
+				}
+			}
 		}
 	}
 	
 	private static void decodeText() {
-		for (String textLine : TEXT_LINES) {
-			RESULT.append(TREE.get(textLine));
-		}
+
 	}
 	
 	private static void writeFile() {
@@ -92,6 +115,7 @@ public class HuffmanDecompress {
 			fileWriter = new FileWriter(resultFileName);
 	        BufferedWriter out = new BufferedWriter(fileWriter);
 		    out.write(RESULT.toString());
+		    System.out.println(RESULT);
 		    out.close();
 		} catch (IOException e) {
 			e.printStackTrace();

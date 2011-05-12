@@ -148,30 +148,30 @@ public class HuffmanCompress {
 		//Note, limit of 2^7=128 different character in the text
 		int nbEntry = ENCODED_CHARACTERS.entrySet().size();
 		StringBuilder sNbEntry = new StringBuilder(Integer.toBinaryString(nbEntry));
-		while (sNbEntry.length() < 7) {
+		while (sNbEntry.length() < 8) {
 			sNbEntry.insert(0, "0");
 		}
-		
-		RESULT.append(Integer.toBinaryString(nbEntry));
+		RESULT.append(sNbEntry.toString());
 		
 		for (Entry<Integer, String> entry : ENCODED_CHARACTERS.entrySet()) {
 			StringBuilder ASCII = new StringBuilder(Integer.toBinaryString(entry.getKey()));
-			while (ASCII.length() < 7) {
+			while (ASCII.length() < 8) {
 				ASCII.insert(0, "0");
 			}
 
 			StringBuilder path = new StringBuilder(entry.getValue());
+			while (path.length() < 8) {
+				path.insert(0, "0");
+			}
 			
-			StringBuilder sLength = new StringBuilder(Integer.toBinaryString(path.length()));
-			while (sLength.length() < 4) {
+			StringBuilder sLength = new StringBuilder(Integer.toBinaryString(entry.getValue().length()));
+			while (sLength.length() < 8) {
 				sLength.insert(0, "0");
 			}
-	
 			RESULT.append(ASCII.toString() + sLength.toString() + path.toString());
 		}
 		for (byte fileByte : FILE_BYTES) {
-			StringBuilder c = new StringBuilder(ENCODED_CHARACTERS.get(new Integer(fileByte)) );
-			RESULT.append(c);
+			RESULT.append(ENCODED_CHARACTERS.get(new Integer(fileByte)));
 		}
 	}
 
@@ -179,16 +179,12 @@ public class HuffmanCompress {
 		String resultFileName = FILE_NAME.replaceAll(TXT_EXTENSION, HUF_EXTENSION);
 		try {
 			FileOutputStream output = new FileOutputStream(resultFileName);  
-	
-			
-			while (RESULT.length() % 7 != 0) {
+			while (RESULT.length() % 8 != 0) {
 				RESULT.append("0");
 			}
 			int i = 0;
-			while (i <RESULT.length()-7) {
-
-				Byte b = Byte.parseByte(RESULT.toString().substring(i, i+7),2);
-
+			while (i <RESULT.length()-8) {
+				int b = Integer.parseInt(RESULT.toString().substring(i, i+8), 2);
 				output.write(b);
 				i+= 8;
 			}
