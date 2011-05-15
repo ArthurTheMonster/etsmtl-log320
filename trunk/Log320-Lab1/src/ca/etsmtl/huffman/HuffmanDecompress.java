@@ -6,13 +6,10 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.sql.NClob;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 
 public class HuffmanDecompress {
 
@@ -42,8 +39,6 @@ public class HuffmanDecompress {
 				readFile();
 
 				decodeTree();
-				
-				System.out.println(TREE);
 				
 				decodeText();
 				
@@ -78,34 +73,67 @@ public class HuffmanDecompress {
 	private static void decodeTree() {
 		int entriesNumber = FILE_BYTES[0] & 0xFF;
 		for (int i = 0; i < entriesNumber; i++) {
-			int character = FILE_BYTES[i * 3 + 1] & 0xFF;
-			int lenght = FILE_BYTES[i * 3 + 2] & 0xFF;
-			System.out.println(lenght);
-			int path = FILE_BYTES[i * 3 + 3] & 0xFF;
-			StringBuilder pathValue = new StringBuilder(Integer.toBinaryString(path));
-			while (pathValue.length() < lenght) {
-				pathValue.insert(0, "0");
+			int character = FILE_BYTES[i * 5 + 1] & 0xFF;
+			int lenght = FILE_BYTES[i * 5 + 2] & 0xFF;
+			int path1 = FILE_BYTES[i * 5 + 3] & 0xFF;
+			int path2 = FILE_BYTES[i * 5 + 4] & 0xFF;
+			int path3 = FILE_BYTES[i * 5 + 5] & 0xFF;
+			StringBuilder path1Value = new StringBuilder(Integer.toBinaryString(path1));
+			while (path1Value.length() < 8) {
+				path1Value.insert(0, "0");
 			}
-			TREE.put(pathValue.toString(), new Character((char) character));
+			StringBuilder path2Value = new StringBuilder(Integer.toBinaryString(path2));
+			while (path2Value.length() < 8) {
+				path2Value.insert(0, "0");
+			}
+			StringBuilder path3Value = new StringBuilder(Integer.toBinaryString(path3));
+			while (path3Value.length() < 8) {
+				path3Value.insert(0, "0");
+			}
+			String path = path1Value.toString() + path2Value.toString() + path3Value.toString();
+			System.out.println("pathlenght " + path.length());
+			System.out.println("read lenght" + lenght);
+			TREE.put(path.substring(path.length() - lenght, path.length()), new Character((char) character));
 		}
-		StringBuilder character = new StringBuilder();
-		for (int i = entriesNumber * 3 + 1; i < FILE_BYTES.length; i++) {
+		
+		StringBuilder sTextLength = new StringBuilder();
+		for (int i = entriesNumber * 5 + 1; i<entriesNumber * 5 + 4; i++) {
 			StringBuilder text = new StringBuilder(Integer.toBinaryString(FILE_BYTES[i] & 0xFF));
 			while (text.length() < 8) {
 				text.insert(0, "0");
 			}
-			for (char c : text.toString().toCharArray()) {
+			sTextLength.append(text);
+			System.out.println("text lenght " + text);
+		}
+		int nbCharacterTotal = Integer.parseInt(sTextLength.toString(),2);
+		
+		System.out.println(nbCharacterTotal);
+		
+		StringBuilder character = new StringBuilder();
+		
+		int nbCharacterReaded = 0;
+		
+		for (int i = entriesNumber * 5 + 4; i < FILE_BYTES.length; i++) {
+			StringBuilder text1 = new StringBuilder(Integer.toBinaryString(FILE_BYTES[i] & 0xFF));
+			while (text1.length() < 8) {
+				text1.insert(0, "0");
+			}
+			for (char c : text1.toString().toCharArray()) {
 				character.append(c);
 				if (TREE.containsKey(character.toString())) {
 					RESULT.append(TREE.get(character.toString()));
 					character.setLength(0);
+					
+					nbCharacterReaded++;
+					if (nbCharacterReaded == nbCharacterTotal) {
+						return;
+					}
 				}
 			}
 		}
 	}
 	
 	private static void decodeText() {
-
 	}
 	
 	private static void writeFile() {
