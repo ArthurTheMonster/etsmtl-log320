@@ -86,17 +86,18 @@ public class HuffmanDecompress2 {
 			for (int j=0 ; j < bob; j++) {
 				StringBuilder currentpath = new StringBuilder(Integer.toBinaryString(FILE_BYTES[nbByteReaded] & 0xFF));
 				nbByteReaded++;
-				if (currentpath.length() > length) {
-					currentpath= new StringBuilder(currentpath.substring(0, length));
-				}
-				while (currentpath.length() < length) {
+				while (currentpath.length() < 8) {
 					currentpath.insert(0, "0");
 				}
 				path.append(currentpath);
+				
+				if (path.length() > length) {
+					path= new StringBuilder(path.substring(path.length() - length, path.length()));
+				}
 			}
-			System.out.println("pathlenght " + path.length());
+			System.out.println("ASCII" + c + " - pathlenght " + path.length());
 			System.out.println("read lenght" + length);
-			TREE.put(path.substring(path.length() - length, path.length()), new Character((char) character));
+			TREE.put(path.toString(), new Character((char) character));
 		}
 		
 		System.out.println(TREE);
@@ -109,12 +110,12 @@ public class HuffmanDecompress2 {
 				text.insert(0, "0");
 			}
 			sTextLength.append(text);
-			System.out.println("text lenght " + text);
+			//System.out.println("text lenght " + text);
 		}
 		
 		int nbCharacterTotal = Integer.parseInt(sTextLength.toString(),2);
 		
-		System.out.println(nbCharacterTotal);
+		//System.out.println(nbCharacterTotal);
 		
 		StringBuilder character = new StringBuilder();
 		
@@ -122,7 +123,7 @@ public class HuffmanDecompress2 {
 		
 		while (nbCharacterReaded < nbCharacterTotal) {
 			StringBuilder text1 = new StringBuilder(Integer.toBinaryString(FILE_BYTES[nbByteReaded] & 0xFF));
-			System.out.println("aa :" + text1);
+			//System.out.println("aa :" + text1);
 			nbByteReaded++;
 
 			//System.out.println("aa :" + FILE_BYTES[nbByteReaded] + " bb: " + Integer.toBinaryString(FILE_BYTES[nbByteReaded] & 0xFF));
@@ -134,7 +135,7 @@ public class HuffmanDecompress2 {
 				character.append(c);
 				if (TREE.containsKey(character.toString())) {
 					RESULT.append(TREE.get(character.toString()));
-					System.out.println(RESULT);
+					//System.out.println(RESULT);
 					character.setLength(0);
 					
 					nbCharacterReaded++;
