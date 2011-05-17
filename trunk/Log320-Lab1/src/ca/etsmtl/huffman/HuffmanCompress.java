@@ -5,10 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -23,8 +20,6 @@ public class HuffmanCompress {
 	
 	private static String FILE_NAME;
 	
-	private static long BEFORE;
-	
 	private static byte[] FILE_BYTES;
 
 	private static final Map<Integer, Integer> FREQUENCIES = new LinkedHashMap<Integer, Integer>();
@@ -35,9 +30,7 @@ public class HuffmanCompress {
 	
 	private static final Map<Integer, String> ENCODED_CHARACTERS = new HashMap<Integer, String>();
 	
-	private static List<Integer> aa = new ArrayList<Integer>();
-	
-	private static ByteBuffer RESULT = ByteBuffer.allocate(10);
+	private static List<Integer> RESULT = new ArrayList<Integer>();
 	
 	/**
 	 * @param args
@@ -46,39 +39,19 @@ public class HuffmanCompress {
 		if (args.length > 0) {
 			FILE_NAME = args[0];
 			if (FILE_NAME.endsWith(TXT_EXTENSION)) {
-				System.out.println("Compressing " + FILE_NAME);
-				
-				BEFORE = Calendar.getInstance().getTimeInMillis();
-				
 				readFile();
-				
-				System.out.println("File readed: " + ((long)Calendar.getInstance().getTimeInMillis() - BEFORE));
 				
 				createFrequencyTable();
 
 				sortFrequencyTable();
 				
-				System.out.println("Create sorted table: " + ((long)Calendar.getInstance().getTimeInMillis() - BEFORE));
-				
 				createTree();
 				
-				System.out.println("Create tree: " + ((long)Calendar.getInstance().getTimeInMillis() - BEFORE));
-					
 				encodeTree();
-				
-				System.out.println("Encode tree: " + ((long)Calendar.getInstance().getTimeInMillis() - BEFORE));
 				
 				toResult();
 				
-				System.out.println("Prepare result: " + ((long)Calendar.getInstance().getTimeInMillis() - BEFORE));
-				
 				writeFile();
-				
-				System.out.println("Write result: " + ((long)Calendar.getInstance().getTimeInMillis() - BEFORE));
-				
-				long after = Calendar.getInstance().getTimeInMillis();
-				
-				System.out.println((long) after - BEFORE);
 			} else {
 				System.out.println("Can't compress file, extension is not " + TXT_EXTENSION);
 			}
@@ -169,37 +142,32 @@ public class HuffmanCompress {
 		while (sNbEntry.length() < 8) {
 			sNbEntry.insert(0, "0");
 		}
-		aa.add(nbEntry);
-		
-		System.out.println("nbEntry: " + ((long)Calendar.getInstance().getTimeInMillis() - BEFORE));
+		RESULT.add(nbEntry);
 		
 		for (Entry<Integer, String> entry : ENCODED_CHARACTERS.entrySet()) {
-			aa.add(entry.getKey() & 0xFF);
- 			aa.add(entry.getValue().length() & 0xFF);
+			RESULT.add(entry.getKey());
+ 			RESULT.add(entry.getValue().length());
 			StringBuilder path = new StringBuilder(Integer.toBinaryString(Integer.parseInt(entry.getValue(), 2)));
-			while (path.length() < 24) {
+			int nbBytePath = (entry.getValue().length() - 1) / 8 + 1;
+			while (path.length() < nbBytePath*8) {
 				path.insert(0, "0");
 			}
- 			aa.add(Integer.parseInt(path.substring(0, 8), 2));
- 			aa.add(Integer.parseInt(path.substring(8, 16), 2));
- 			aa.add(Integer.parseInt(path.substring(16, 24), 2));
+			
+			for (int i = 0; i< nbBytePath; i++) {
+				RESULT.add(Integer.parseInt(path.substring(i*8, i*8+8), 2));
+ 			}
 		}
-		
-		System.out.println("tree: " + ((long)Calendar.getInstance().getTimeInMillis() - BEFORE));
 		
 		String value = Integer.toBinaryString(FILE_BYTES.length);
-		StringBuilder path = new StringBuilder(value);
-		while (path.length() < 24) {
-			path.insert(0, "0");
+		StringBuilder textLength = new StringBuilder(value);
+		while (textLength.length() < 24) {
+			textLength.insert(0, "0");
 		}
-		aa.add(Integer.parseInt(path.substring(0, 8), 2));
-		aa.add(Integer.parseInt(path.substring(8, 16), 2));
-		aa.add(Integer.parseInt(path.substring(16, 24), 2));
-		
-		System.out.println("caracter lenght: " + ((long)Calendar.getInstance().getTimeInMillis() - BEFORE));
+		RESULT.add(Integer.parseInt(textLength.substring(0, 8), 2));
+		RESULT.add(Integer.parseInt(textLength.substring(8, 16), 2));
+		RESULT.add(Integer.parseInt(textLength.substring(16, 24), 2));
 		
 		StringBuilder builder = new StringBuilder();
-		
 		long byteBuff = 0;
 		int byteIndex = 0;
 		
@@ -215,7 +183,7 @@ public class HuffmanCompress {
 				long toAppend = byteBuff >> (byteIndex % 8);
 				int nbOfBytes = byteIndex / 8;
 				for(int i = 0;i < nbOfBytes;i++){
-					aa.add((int)(toAppend >> (((nbOfBytes - 1) - i) * 8)));
+					RESULT.add((int)(toAppend >> (((nbOfBytes - 1) - i) * 8)));
 				}
 				byteBuff = remaining;
 				byteIndex = byteIndex % 8;
@@ -224,50 +192,29 @@ public class HuffmanCompress {
 		
 		if(byteIndex > 0){
 			byteBuff = byteBuff << (8 - byteIndex);
-			aa.add((int)byteBuff);
+			RESULT.add((int)byteBuff);
 		}
-		
-		System.out.println("ENCODED_CHARACTERS: " + ((long)Calendar.getInstance().getTimeInMillis() - BEFORE));
 		
 		while (builder.length() % 8 != 0) {
 			builder.append("0");
 		}
 		
-		System.out.println("buffer: " + ((long)Calendar.getInstance().getTimeInMillis() - BEFORE));
-		
 		int i = 0;
 		while (i <= builder.toString().length() - 8) {
-			aa.add(Integer.parseInt(builder.substring(i, i + 8), 2));
+			RESULT.add(Integer.parseInt(builder.substring(i, i + 8), 2));
 			i += 8; 
 		}
-		
-		System.out.println("text: " + ((long)Calendar.getInstance().getTimeInMillis() - BEFORE));
-		
-		System.out.println(ENCODED_CHARACTERS);
 	}
 
 	private static void writeFile() {
 		String resultFileName = FILE_NAME.replaceAll(TXT_EXTENSION, HUF_EXTENSION);
 		try {
 			FileOutputStream output = new FileOutputStream(resultFileName);  
-			/*while (RESULT.length() % 8 != 0) {
-				RESULT.append("0");
-			}*/
-			//int i = 0;
-			//char[] bytes = RESULT.toString().toCharArray();
-			/*while (i <= bytes.length - 8) {
-				String bob = bytes[i]
-				bytes[i/8] = (byte) Integer.parseInt(bytes[i],2);
-				i += 8; 
-				System.out.println(i);
-			}*/
-			for (int j : aa.toArray(new Integer[aa.size()])) {
+			for (int j : RESULT.toArray(new Integer[RESULT.size()])) {
 				output.write(j & 0xFF);
-				//System.out.println(j);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-	
 }
