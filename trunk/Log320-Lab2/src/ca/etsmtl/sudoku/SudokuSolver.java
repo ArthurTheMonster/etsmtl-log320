@@ -1,11 +1,12 @@
 package ca.etsmtl.sudoku;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Scanner;
 
 public class SudokuSolver {
 
@@ -35,71 +36,26 @@ public class SudokuSolver {
 		if (args.length > 0) {
 			SUDOKU_FILE_NAME = args[0];
 			if (SUDOKU_FILE_NAME.endsWith(TXT_EXTENSION)) {
+				long firstTime = System.currentTimeMillis();
 				readFile();
-
-				/*for (byte[] row : SUDOKU) {
-					System.out.println(Arrays.toString(row));	
-				}
-
-				System.out.println("---------------------");*/
-
-				/*for (byte[][] row : SUDOKU_CANDIDATES) {
-					for (byte[] a : row) {
-						System.out.println(Arrays.toString(a));	
-					}
-				}*/
-
-				boolean isPossible = solveSudoku2(SUDOKU, SUDOKU_CANDIDATES);
-				if (isPossible) {
-					for (byte[] row : SUDOKU_SOLUTION) {
-						System.out.println(Arrays.toString(row));	
-					}
-				}
-				else {
+				boolean solved = solveSudoku2(SUDOKU, SUDOKU_CANDIDATES);
+				if (!solved) {
 					System.out.println("No.");					
 				}
-
-				
+				System.out.println("Total:" + (System.currentTimeMillis() - firstTime));
+				for (byte[] line : SUDOKU_SOLUTION) {
+					System.out.println(Arrays.toString(line));
+				}
 			}
 		}
 	}
 
-	/*Résoudre grille (n)
-	Debut
-	  Rechercher tous les candidats
-	  Rechercher la première cellule qui possède le moins de candidats possibles
-	  Si toutes les cellules sont remplies
-	  Alors La résolution est terminée avec succès
-	  Sinon 
-	    Si on a trouvé une cellule avec aucun candidat
-	    Alors la grille n'a pas de solution
-	    Sinon 
-	      Pour chaque candidat de la cellule trouvée
-	      Debut
-	        remplir la cellule avec le candidat
-	        Résoudre la grille (N+1)
-	      Fin pour
-	    Fin si
-	  Fin si
-	Fin*/
-	
-	private static boolean solveSudoku2(byte[][] sudokuCopy, byte[][][] candidateCopy) {
-		/*byte[][][] candidateCopy = new byte[9][9][10];
-		for (int i = 0; i < 9; i++) {
-			for (int j = 0; j < 9; j++) {
-				for (int k = 0; k < 10; k++) {
-					candidateCopy[i][j][k] = sudokuCandidates[i][j][k];
-				}
-			}
+	private static boolean solveSudoku2(byte[][] sudoku, byte[][][] candidateCopy) {
+		byte[][] sudokuCopy = new byte[SUDOKU_LENGTH][SUDOKU_LENGTH];
+		for (int i = 0; i < SUDOKU_LENGTH; i++) {
+			System.arraycopy(sudoku[i], 0, sudokuCopy[i], 0, sudoku[i].length);
+
 		}
-		
-		byte[][] sudokuCopy = new byte[9][9];
-		for (int i = 0; i < 9; i++) {
-			for (int j = 0; j < 9; j++) {
-				sudokuCopy[i][j] = sudoku[i][j];
-			}
-		}*/
-		
 		byte[] nextPosition = getNextPosition(sudokuCopy, candidateCopy);
 		if (nextPosition[0] == -1 || nextPosition[1] == -1) {
 			SUDOKU_SOLUTION = sudokuCopy;
@@ -111,18 +67,15 @@ public class SudokuSolver {
 			} else {
 				for (Byte value : values) {
 					sudokuCopy[nextPosition[0]][nextPosition[1]] = value;
-					byte[][][] candidateCopy2 = new byte[9][9][10];
-					for (int i = 0; i < 9; i++) {
-						for (int j = 0; j < 9; j++) {
-							for (int k = 0; k < 10; k++) {
-								candidateCopy2[i][j][k] = candidateCopy[i][j][k];
-							}
+					byte[][][] candidateCopy2 = new byte[SUDOKU_LENGTH][SUDOKU_LENGTH][10];
+					for (int i = 0; i < SUDOKU_LENGTH; i++) {
+						for (int j = 0; j < SUDOKU_LENGTH; j++) {
+							System.arraycopy(candidateCopy[i][j], 0, candidateCopy2[i][j], 0, candidateCopy[i][j].length);
 						}
 					}
-					candidateCopy = updateCandidate(nextPosition[0], nextPosition[1], value, candidateCopy);
+					updateCandidate(nextPosition[0], nextPosition[1], value, candidateCopy);
 					if (!solveSudoku2(sudokuCopy, candidateCopy)) {
 						candidateCopy = candidateCopy2;
-						System.out.println("BACKTRACK!");
 					} else {
 						return true;
 					}
@@ -131,37 +84,6 @@ public class SudokuSolver {
 		}
 		return false;
 	}
-	
-	/*private static boolean solveSudoku(byte[][] sudoku, byte[][][] sudokuCandidates) {
-		byte[] nextPosition = getNextPosition(sudoku, sudokuCandidates);
-		if (nextPosition[2] == 0) {
-			return false;
-		}
-		
-		if (nextPosition[2] == 10) {
-			SUDOKU_SOLUTION = sudoku;
-			return true;
-		}
-
-		//byte nextValue = getNextValue(sudokuCandidates[nextPosition[0]][nextPosition[1]]);
-		//System.out.println("PositionX:" + nextPosition[0] + " PositionY:" + nextPosition[1] + " nextValue:" + nextValue);
-		if (nextValue == -1) {
-			return false;
-		}
-
-		sudoku[nextPosition[0]][nextPosition[1]] = nextValue;
-		sudokuCandidates = updateCandidate(nextPosition[0],nextPosition[1], nextValue, sudokuCandidates);
-
-		while (!solveSudoku(sudoku,sudokuCandidates)) {
-			/nextValue = getNextValue(sudokuCandidates[nextPosition[0]][nextPosition[1]]);
-			//System.out.println("PositionX:" + nextPosition[0] + " PositionY:" + nextPosition[1] + " nextValue:" + nextValue);
-			if (nextValue == -1) return false;
-			sudoku[nextPosition[0]][nextPosition[1]] = nextValue;
-			sudokuCandidates = updateCandidate(nextPosition[0],nextPosition[1], nextValue, sudokuCandidates);
-		}
-
-		return true;
-	}*/
 
 	private static Byte[] getNextValues(byte[] sudokuCandidates) {
 		List<Byte> values = new ArrayList<Byte>();
@@ -177,7 +99,6 @@ public class SudokuSolver {
 		byte[] nextPosition = new byte[] {-1, -1, 10};
 		for (byte i = 0; i < SUDOKU_LENGTH; i++) {
 			for (byte j = 0; j < SUDOKU_LENGTH; j++) {
-				//System.out.println(Arrays.toString(sudokuCandidates[i][j]));
 				// Optimisation: s'inquiete davance des que je trouve un # = 0
 				if (sudokuCandidates[i][j][0] < nextPosition[2] && sudoku[i][j] == 0) {
 					nextPosition[2] = sudokuCandidates[i][j][0];
@@ -186,221 +107,65 @@ public class SudokuSolver {
 				}
 			}
 		}
-		//System.out.println("lowestCandidateCount" + nextPosition[2]);
-		//System.out.println("x:" + nextPosition[0] + " y:" + nextPosition[1]);
 		return nextPosition;
 	}
 
 	private static void readFile() {
+		File file = new File(SUDOKU_FILE_NAME);
+		FileInputStream fileInputStream;
+		byte[] fileBytes = null;
 		try {
-			Scanner scanner = new Scanner(new File(SUDOKU_FILE_NAME));
-			byte rowIndex = 0;
-			while (scanner.hasNextLine()) {
-				setSudokuRow(scanner.nextLine(), rowIndex);
-				rowIndex++;
-			}
-			scanner.close();
+			fileInputStream = new FileInputStream(file);
+			fileBytes = new byte[(int) file.length()];
+			fileInputStream.read(fileBytes);
+			fileInputStream.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
-	}
-
-	private static void setSudokuRow(String sudokuRow, byte rowIndex) {
-		char[] sudokuRowCharacters = sudokuRow.toCharArray();
-		for (byte i = 0; i < sudokuRowCharacters.length; i++) {
-			byte value = Byte.valueOf(String.valueOf(sudokuRowCharacters[i]));
-			SUDOKU[rowIndex][i] = value;
-			if (value != 0) {
-				SUDOKU_CANDIDATES = updateCandidate(rowIndex, i, value, SUDOKU_CANDIDATES);
-				for (byte[][] row : SUDOKU_CANDIDATES) {
-					for (byte[] a : row) {
-						//System.out.println(Arrays.toString(a));	
-					}
-				}
-				//System.out.println("----------------------------");
+		byte rowIndex = 0;
+		byte colIndex = 0;
+		byte sudokuChar;
+		for (byte fileByte : fileBytes) {
+			if (fileByte != 48 && colIndex<9) {
+				sudokuChar = (byte) (fileByte-48);
+				SUDOKU[rowIndex][colIndex] = sudokuChar;
+				updateCandidate(rowIndex, colIndex, sudokuChar, SUDOKU_CANDIDATES);
+			}
+			colIndex++;
+			if(colIndex >= 11){
+				colIndex = 0;
+				rowIndex ++;
 			}
 		}
 	}
 
-	public static byte[][][] updateCandidate(byte x, byte y, byte value, byte[][][] sudokuCandidates) {
-		sudokuCandidates[x][y] = removeCandidates(sudokuCandidates[x][y], value);
+	public static void updateCandidate(byte x, byte y, byte value, byte[][][] sudokuCandidates) {
 		for (int i = 0; i < SUDOKU_LENGTH; i++) {
-			if (x != i) {
-				sudokuCandidates[i][y] = removeCandidates(sudokuCandidates[i][y], value);
-			}
+			removeCandidates(sudokuCandidates[i][y], value);
+			removeCandidates(sudokuCandidates[x][i], value);
 		}
-		for (int j = 0; j < SUDOKU_LENGTH; j++) {
-			if (y != j) {
-				sudokuCandidates[x][j] = removeCandidates(sudokuCandidates[x][j], value);
-			}
-		}
-		int squareNumX = x/3;
-		int squareNumY = y/3;
-		for (int i = squareNumX*3; i<(squareNumX+1)*3; i++) {
+		int squareNumX = x - (x % 3);
+		int squareNumY = y - (y % 3);
+		for (int i = squareNumX; i<(squareNumX+3); i++) {
 			if (x != i) {
-				for (int j = squareNumY*3; j<(squareNumY+1)*3; j++) {
+				for (int j = squareNumY; j<(squareNumY+3); j++) {
 					if (y != j) {
-						sudokuCandidates[i][j] = removeCandidates(sudokuCandidates[i][j], value);
+						removeCandidates(sudokuCandidates[i][j], value);
 					}
 				}	
 			}
 		}
-		return sudokuCandidates;
 	}
 
-	public static byte[] removeCandidates(byte[] currentCandidate, byte value) {
+	public static boolean removeCandidates(byte[] currentCandidate, byte value) {
 		if (currentCandidate[value] == 1) {
 			currentCandidate[0]--;
 			currentCandidate[value] = 0;
-			//System.out.println(Arrays.toString(currentCandidate));
+			return true;
 		}
-		return currentCandidate;
+		return false;
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	/*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	private static boolean isValid(byte x, byte y, byte value) {
-		for (int i = 0; i < SUDOKU_LENGTH; i++) {
-			if (SUDOKU[x][i] == value) {
-				return false;
-			}
-		}
-		for (int i = 0; i < SUDOKU_LENGTH; i++) {
-			if (SUDOKU[i][y] == value) {
-				return false;
-			}
-		}
-		int squareNumX = x/3;
-		int squareNumY = y/3;
-		for (int i = squareNumX*3; i<(squareNumX+1)*3; i++) {
-			for (int j = squareNumY*3; j<(squareNumY+1)*3; j++) {
-				if (SUDOKU[i][j] == value) {
-					return false;
-				} 
-			}	
-		}
-		return true;
-	}
-
-
-
-
-	private static SudokuBox getNextSudokuBox(List<SudokuBox> listSudokuBox) {
-		for (SudokuBox sudokuBox : listSudokuBox) {
-			if (sudokuBox.value == 0) {
-				return sudokuBox;
-			}
-		}
-		return null;
-	}
-
-
-	private static boolean solveBox(List<SudokuBox> listSudokuBox) {
-		Collections.sort(listSudokuBox);
-
-		SudokuBox box = getNextSudokuBox(listSudokuBox);
-
-		return true;
-	}
-
-	private static void setValue(SudokuBox box, byte value) {
-		box.value = value;
-
-		for (int i = 0; i < SUDOKU_LENGTH; i++) {
-			SUDOKU_BOXES[i][box.y].candidates.remove(new Byte(value));
-		}
-		for (int j = 0; j < SUDOKU_LENGTH; j++) {
-			SUDOKU_BOXES[box.x][j].candidates.remove(new Byte(value));
-		}
-
-		int squareNumX = box.x/3;
-		int squareNumY = box.y/3;
-		for (int i = squareNumX*3; i<(squareNumX+1)*3; i++) {
-			if (i != box.x) {
-				for (int j = squareNumY*3; j<(squareNumY+1)*3; j++) {
-					if (j != box.y) {
-						SUDOKU_BOXES[box.x][j].candidates.remove(new Byte(value));
-					}
-				}	
-			}
-		}
-	}
-
-	private static SudokuBox createSudokuBox(byte x, byte y) {
-		SudokuBox sudokuBox = new SudokuBox(x, y, SUDOKU[x][y]);
-		for (int i = 0; i < SUDOKU_LENGTH; i++) {
-			if (SUDOKU[x][i] != 0) {
-				sudokuBox.candidates.remove(new Byte(SUDOKU[x][i]));
-			}
-		}
-		for (int i = 0; i < SUDOKU_LENGTH; i++) {
-			if (SUDOKU[i][y] != 0) {
-				sudokuBox.candidates.remove(new Byte(SUDOKU[i][y]));
-			}
-		}
-		int squareNumX = x/3;
-		int squareNumY = y/3;
-		for (int i = squareNumX*3; i<(squareNumX+1)*3; i++) {
-			if (i != x) {
-				for (int j = squareNumY*3; j<(squareNumY+1)*3; j++) {
-					if (j != y) {
-						if (SUDOKU[i][j] != 0) {
-							sudokuBox.candidates.remove(new Byte(SUDOKU[i][j]));
-						} 
-					}
-				}	
-			}
-		}
-		return sudokuBox;
-	}*/
-
+	
 }
