@@ -10,7 +10,7 @@ import java.util.List;
 
 public class SudokuSolver {
 
-	private static final String TXT_EXTENSION = ".txt";
+	private static final String SUD_EXTENSION = ".sud";
 
 	private static String SUDOKU_FILE_NAME;
 
@@ -35,7 +35,7 @@ public class SudokuSolver {
 	public static void main(String[] args) {
 		if (args.length > 0) {
 			SUDOKU_FILE_NAME = args[0];
-			if (SUDOKU_FILE_NAME.endsWith(TXT_EXTENSION)) {
+			if (SUDOKU_FILE_NAME.endsWith(SUD_EXTENSION)) {
 				long firstTime = System.currentTimeMillis();
 				readFile();
 				boolean solved = solveSudoku2(SUDOKU, SUDOKU_CANDIDATES);
