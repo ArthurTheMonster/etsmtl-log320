@@ -1,0 +1,5 @@
+E:\Workspaces\workspace_ets\Log320-Lab3\Breakthrough.Game\Breakthrough.Game\bin\Debug\Breakthrough.dll
+E:\Workspaces\workspace_ets\Log320-Lab3\Breakthrough.Game\Breakthrough.Game\bin\Debug\Breakthrough.pdb
+E:\Workspaces\workspace_ets\Log320-Lab3\Breakthrough.Game\Breakthrough.Game\obj\Debug\ResolveAssemblyReference.cache
+E:\Workspaces\workspace_ets\Log320-Lab3\Breakthrough.Game\Breakthrough.Game\obj\Debug\Breakthrough.dll
+E:\Workspaces\workspace_ets\Log320-Lab3\Breakthrough.Game\Breakthrough.Game\obj\Debug\Breakthrough.pdb
