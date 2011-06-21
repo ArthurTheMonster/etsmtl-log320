@@ -8,7 +8,7 @@ import java.io.InputStreamReader;
 import java.net.Socket;
 
 
-//http://www.codeproject.com/KB/game/breakthrough.aspx
+// http://www.codeproject.com/KB/game/breakthrough.aspx
 public class HumanClient {
 
 	public static void main(String[] args) {
