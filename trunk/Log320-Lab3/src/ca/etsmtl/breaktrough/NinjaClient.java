@@ -5,9 +5,16 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.List;
 
 public class NinjaClient {
 
+	// TODO: INT
+	public enum Player {
+		BLACK,
+		WHITE;
+	}
+	
 	private Socket clientSocket;
 	private BufferedInputStream input;
 	private BufferedOutputStream output;
@@ -15,11 +22,16 @@ public class NinjaClient {
 	private byte[] opponentMoveBuffer = new byte[16];
 	private Move lastOpponentMove;
 	
-	private String bestMove;
-	
 	private boolean gameCompleted;
 	
 	private GameTable gameTable = new GameTable();
+	
+	private int deepnessTree = 6;
+	
+	private Player maxPlayer = Player.BLACK;
+	private Player minPlayer = Player.WHITE;
+	
+	private Move myBestMove;
 	
 	public NinjaClient() {
 		initTables();
@@ -57,38 +69,118 @@ public class NinjaClient {
 			if (cmd == '1') {
 				int size = input.available();
 				input.read(opponentMoveBuffer, 0, size);
-				lastOpponentMove = parseOpponentMove(new String(opponentMoveBuffer));
-				System.out.println("Last opponent move is " + lastOpponentMove);
-				GameTable.move(gameTable, lastOpponentMove);
-				GameTable.printGameTable(gameTable);
+				if (new String(opponentMoveBuffer).trim().equals("A8 - A8")) {
+					maxPlayer = Player.WHITE;
+					minPlayer = Player.BLACK;
+				} else {
+					lastOpponentMove = parseOpponentMove(new String(opponentMoveBuffer));
+					GameTable.move(gameTable, lastOpponentMove);
+				}
+
 			} else if (cmd == '2') {
-				System.out.println("Last move is not valid");
-				//TODO ?
+				System.out.println("##### Last move is not valid #####");
 			} else {
-				System.out.println("cmd is " + cmd);
+				System.out.println("##### Unexpected command: " + cmd);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 	
+	private int NinjaMax(GameTable table, int howManyMoveLeft, int alpha, int beta) {
+		Move tempBestMove = null;
+
+		if (howManyMoveLeft == 0) {
+			return evalTable(table, maxPlayer);
+		}
+
+		howManyMoveLeft--;
+		
+		List<Move> listMove = GameTable.getAllMove(table, maxPlayer);
+		
+		int currentAlpha = Integer.MIN_VALUE;
+		for (Move move : listMove) {
+			GameTable newGameTable = new GameTable(table);
+			GameTable.move(newGameTable, move);
+			int score = NinjaMin(newGameTable, howManyMoveLeft,Math.max(alpha,currentAlpha),beta);
+			
+			if (table.getBlackPawnCount() > newGameTable.getBlackPawnCount()) {
+				score += 500;
+			}
+			
+			if (howManyMoveLeft == deepnessTree-1) {
+				System.out.println("NEW MOVE: " + score);
+			}
+			
+			
+			if (score > currentAlpha) {
+				currentAlpha = score;
+				tempBestMove = move;
+
+				if (currentAlpha > beta) {
+					myBestMove = tempBestMove;
+					return currentAlpha;
+				}
+			}
+		}
+		
+		if (howManyMoveLeft == deepnessTree-1) {
+			System.out.println("CHOOSED MOVE:" + currentAlpha);
+		}
+		myBestMove = tempBestMove;
+		return currentAlpha;
+	}
+	
+	private int NinjaMin(GameTable table, int howManyMoveLeft, int alpha, int beta) {	
+		if (howManyMoveLeft == 0) {
+			return evalTable(table, maxPlayer);
+		}
+
+		howManyMoveLeft--;
+		
+		List<Move> listMove = GameTable.getAllMove(table, minPlayer);
+		
+		int currentBeta = Integer.MAX_VALUE;
+		for (Move move : listMove) {
+			GameTable newGameTable = new GameTable(table);
+			GameTable.move(newGameTable, move);
+			int score = NinjaMax(newGameTable, howManyMoveLeft,alpha,Math.min(beta,currentBeta));
+			
+			if (table.getWhitePawnCount() > newGameTable.getWhitePawnCount()) {
+				score -= 500;
+			}
+			
+			
+			if (score < currentBeta) {
+				currentBeta = score;
+				
+				if (currentBeta < alpha) {
+					return currentBeta;
+				}
+			}
+		}
+		return currentBeta;
+	}
+	
+	private int evalTable(GameTable table, Player player) {
+		return table.getTableScore(player);
+	}
+	
 	private Move parseOpponentMove(String opponentMove) {
 		String[] move = opponentMove.trim().split(" - ");
-		return new Move(move[0], move[1]);
+		return new Move(move[0], move[1], minPlayer);
 	}
 	
 	private void buildDecisionTree() {
-		
 	}
 	
-	private String[] startingMoves = new String[] {"A2 - A3", "A3 - A4", "A4 - A5"};
-	private int startingMovesIndex = 0;
-	
 	private void sendMove() {
-		bestMove = startingMoves[startingMovesIndex++];
+		long time = System.currentTimeMillis();
+		NinjaMax(gameTable, deepnessTree,Integer.MIN_VALUE,Integer.MAX_VALUE);
+		System.out.println(System.currentTimeMillis() - time);
 		try {
-			GameTable.move(gameTable, parseOpponentMove(bestMove));
-			output.write(bestMove.getBytes(), 0, bestMove.length());
+			GameTable.move(gameTable, myBestMove);
+			output.write(myBestMove.toString().getBytes(), 0, 7);
 			output.flush();
 		} catch (IOException e) {
 			e.printStackTrace();
