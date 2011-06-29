@@ -1,6 +1,7 @@
 package ca.etsmtl.breaktrough;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
 
 import ca.etsmtl.breaktrough.NinjaClient.Player;
@@ -8,6 +9,8 @@ import ca.etsmtl.breaktrough.NinjaClient.Player;
 public class GameTable {
 	private static final long STARTING_BLACK_TABLE = -281474976710656l;
 	private static final long STARTING_WHITE_TABLE = 65535l;
+	
+	public static Hashtable<Long, Integer> transposition = new Hashtable<Long, Integer>(1000000);
 	
 	public long blackTable;
 	public long whiteTable;
@@ -152,13 +155,12 @@ public class GameTable {
 		return false;
 	}
 	
-	public int getTableScore(Player player) {		
-	  if (player.equals(Player.BLACK)) {
-		  return getPlayerScore(player) - getPlayerScore(Player.WHITE);
-	  } else {
-		  return getPlayerScore(player) - getPlayerScore(Player.BLACK);
-	  }
-		 
+	public int getTableScore(Player player) {	
+		if (player.equals(Player.BLACK)) {
+			return getPlayerScore(player) - getPlayerScore(Player.WHITE);
+		} else {
+			return getPlayerScore(player) - getPlayerScore(Player.BLACK);
+		}	 
 	}
 	
 	private int getPlayerScore(Player player) {
@@ -169,78 +171,96 @@ public class GameTable {
 			myTable = whiteTable;
 			myPawnCount = whitePawnCount;
 		}
+		if (!transposition.containsKey(myTable)) {
 		
-		for (int i = 0; i < 63; i++) {
-			long currentPawn = myTable & 1l << i;
-			
-			if (player == Player.WHITE) {
-				if (currentPawn == -9223372036854775808l) {
-					score += 128;
-				}
-				else if (currentPawn <= 128l) {
-					score += 1;
-				} 
-				else if (currentPawn <= 32768l) {
-					score += 4;	
-				}
-				else if (currentPawn <= 8388608l) {
-					score += 16;
-				}
-				else if (currentPawn <= 2147483648l) {
-					score += 64;
-				}
-				else if (currentPawn <= 549755813888l) {
-					score += 256;
-				}
-				else if (currentPawn <= 140737488355328l) {
-					score += 1024;
-				}
-				else if (currentPawn <= 36028797018963968l) {
-					score += 4048;
-				}
-				else if (currentPawn <= 4611686018427387904l) {
-					score += 16000;
-				}
-			}
-			else {
-				if (currentPawn == -9223372036854775808l) {
-					score += 1;
-				}
-				else if (currentPawn <= 128l) {
-					score += 16000;
-				} 
-				else if (currentPawn <= 32768l) {
-					score += 4048;	
-				}
-				else if (currentPawn <= 8388608l) {
-					score += 1024;
-				}
-				else if (currentPawn <= 2147483648l) {
-					score += 256;
-				}
-				else if (currentPawn <= 549755813888l) {
-					score += 64;
-				}
-				else if (currentPawn <= 140737488355328l) {
-					score += 16;
-				}
-				else if (currentPawn <= 36028797018963968l) {
-					score += 4;
-				}
-				else if (currentPawn <= 4611686018427387904l) {
-					score += 1;
-				}	
-			}
-			
-			if (currentPawn > 0) {
-				myPawnCount--;
-				if (myPawnCount == 0) {
-					return score;
+			for (int i = 0; i < 64; i++) {
+				long currentPawn = myTable & 1l << i;
+				if (currentPawn != 0) {
+					if (player == Player.WHITE) {
+						// We should most of our pawn with the first if
+						if (currentPawn == -9223372036854775808l) {
+							score += 128;
+						}
+						else if (currentPawn <= 128l) {
+							score += 1;
+						} 
+						else if (currentPawn <= 32768l) {
+							score += 4;	
+						}
+						else if (currentPawn <= 8388608l) {
+							score += 16;
+						}
+						else if (currentPawn <= 2147483648l) {
+							score += 64;
+						}
+						else if (currentPawn <= 549755813888l) {
+							score += 256;
+						}
+						else if (currentPawn <= 140737488355328l) {
+							score += 1024;
+						}
+						else if (currentPawn <= 36028797018963968l) {
+							score += 4048;
+						}
+						else if (currentPawn <= 4611686018427387904l) {
+							score += 16000;
+						}
+						else {
+							assert(false);
+						}
+					}
+					else {
+						// We should most of our pawn with the first if
+						if (currentPawn == -9223372036854775808l) {
+							score += 1;
+						}
+						else if (currentPawn > 36028797018963968l) {
+							score += 1;
+						}
+						else if (currentPawn > 140737488355328l) {
+							score += 4;
+						}
+						else if (currentPawn > 549755813888l) {
+							score += 16;
+						}
+						else if (currentPawn > 2147483648l) {
+							score += 64;
+						}
+						else if (currentPawn > 8388608l) {
+							score += 256;
+						}
+						else if (currentPawn > 32768l) {
+							score += 1024;	
+						}
+						else if (currentPawn > 128l) {
+							score += 4048;
+						}
+						else if (currentPawn > 0) {
+							score += 16000;
+						}
+						else {
+							assert(false);
+						}
+					}
+				
+					myPawnCount--;
+					if (myPawnCount == 0) {
+						transposition.put(myTable, score);
+						break;
+					}
 				}
 			}
 		}
-		
-		return 0;
+		int ans = 0;
+		assert(myPawnCount > 0);
+		try {
+			ans = transposition.get(myTable);
+		} catch (Exception e) {
+			System.out.println("Fuck. We crashed. Don't worry bud! I got it! Everything is under control.");
+			// In fact, it's not under control. Why the fuck do we crash here.
+			printTable(myTable);
+		}
+		return ans;
 	}
 
 	public static void printGameTable(GameTable gameTable) {

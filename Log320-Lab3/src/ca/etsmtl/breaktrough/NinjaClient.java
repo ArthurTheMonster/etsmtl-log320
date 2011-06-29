@@ -19,6 +19,10 @@ public class NinjaClient {
 	private BufferedInputStream input;
 	private BufferedOutputStream output;
 	
+	private String[] firstMoves = { "E2 - E3", "E3 - E4" };
+	
+	private int nbMovePlayed = 0;
+	
 	private byte[] opponentMoveBuffer = new byte[16];
 	private Move lastOpponentMove;
 	
@@ -30,6 +34,7 @@ public class NinjaClient {
 	
 	private Player maxPlayer = Player.BLACK;
 	private Player minPlayer = Player.WHITE;
+
 	
 	private Move myBestMove;
 	
@@ -73,14 +78,14 @@ public class NinjaClient {
 					maxPlayer = Player.WHITE;
 					minPlayer = Player.BLACK;
 				} else {
-					lastOpponentMove = parseOpponentMove(new String(opponentMoveBuffer));
+					lastOpponentMove = parseMove(new String(opponentMoveBuffer), minPlayer);
 					GameTable.move(gameTable, lastOpponentMove);
 				}
 
 			} else if (cmd == '2') {
 				System.out.println("##### Last move is not valid #####");
 			} else {
-				System.out.println("##### Unexpected command: " + cmd);
+				System.out.println("##### Unexpected command: " + cmd + " #####");
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -103,10 +108,10 @@ public class NinjaClient {
 			GameTable newGameTable = new GameTable(table);
 			GameTable.move(newGameTable, move);
 			int score = NinjaMin(newGameTable, howManyMoveLeft,Math.max(alpha,currentAlpha),beta);
-			
-			if (table.getBlackPawnCount() > newGameTable.getBlackPawnCount()) {
+
+			/*if (table.getBlackPawnCount() > newGameTable.getBlackPawnCount()) {
 				score += 500;
-			}
+			}*/
 			
 			if (howManyMoveLeft == deepnessTree-1) {
 				System.out.println("NEW MOVE: " + score);
@@ -146,10 +151,9 @@ public class NinjaClient {
 			GameTable.move(newGameTable, move);
 			int score = NinjaMax(newGameTable, howManyMoveLeft,alpha,Math.min(beta,currentBeta));
 			
-			if (table.getWhitePawnCount() > newGameTable.getWhitePawnCount()) {
+			/*if (table.getWhitePawnCount() > newGameTable.getWhitePawnCount()) {
 				score -= 500;
-			}
-			
+			}*/
 			
 			if (score < currentBeta) {
 				currentBeta = score;
@@ -166,17 +170,25 @@ public class NinjaClient {
 		return table.getTableScore(player);
 	}
 	
-	private Move parseOpponentMove(String opponentMove) {
+	private Move parseMove(String opponentMove, Player player) {
 		String[] move = opponentMove.trim().split(" - ");
-		return new Move(move[0], move[1], minPlayer);
+		return new Move(move[0], move[1], player);
 	}
 	
 	private void buildDecisionTree() {
 	}
 	
+	
+	
 	private void sendMove() {
 		long time = System.currentTimeMillis();
-		NinjaMax(gameTable, deepnessTree,Integer.MIN_VALUE,Integer.MAX_VALUE);
+		if (nbMovePlayed < firstMoves.length) {
+			myBestMove = parseMove(firstMoves[nbMovePlayed], maxPlayer);
+		} else {
+			NinjaMax(gameTable, deepnessTree,Integer.MIN_VALUE,Integer.MAX_VALUE);
+		}
+		System.out.println("Oh. Btw. Our awsome transposition table has now: " + GameTable.transposition.size() + " entries.");
+		nbMovePlayed++;
 		System.out.println(System.currentTimeMillis() - time);
 		try {
 			GameTable.move(gameTable, myBestMove);
