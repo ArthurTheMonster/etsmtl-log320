@@ -19,6 +19,13 @@ public class Move {
 		setMove(tableFrom, tableTo);
 	}
 	
+	public Move(Move copyMove) {
+		initialPos = copyMove.initialPos;
+		move = copyMove.move;
+		finalPos = copyMove.finalPos;
+		player = copyMove.player;
+	}
+	
 	public Move(long initialPos, int move, Player player) {
 		this.initialPos = initialPos;
 		this.move = move;

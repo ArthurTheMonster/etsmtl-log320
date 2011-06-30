@@ -32,6 +32,17 @@ public class GameTable {
 		setWhitePawnCount(gameTable.getWhitePawnCount());
 	}
 	
+	public long getTable(Player player) {
+		if (player.equals(Player.WHITE)) {
+			return whiteTable;
+		}
+		return blackTable;
+	}
+	
+	public long getTable() {
+		return (blackTable | whiteTable);
+	}
+	
 	// The move MUST be valid - won't be validated
 	public static void move(GameTable gameTable, Move move) {
 		long ourTable;
@@ -136,13 +147,13 @@ public class GameTable {
 		return validMovePawn;
 	}
 
-	public static boolean isValidMove(GameTable table, Move move) {
+	public boolean isValidMove(Move move) {
 		// If I have a pawn a this pos
-		long myTable = table.blackTable;
-		long oppTable = table.whiteTable;
+		long myTable = blackTable;
+		long oppTable = whiteTable;
 		if (move.player.equals(Player.WHITE)) {
-			myTable = table.whiteTable;
-			oppTable = table.blackTable;
+			myTable = whiteTable;
+			oppTable = blackTable;
 		}
 		
 		if ((move.initialPos & myTable) == 0) {
