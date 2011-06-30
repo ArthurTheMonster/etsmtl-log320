@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
 
 public class NinjaClient {
@@ -31,19 +32,21 @@ public class NinjaClient {
 	
 	private GameTable gameTable = new GameTable();
 	
-	private int deepnessTree = 6;
+	private int deepnessTree = 7;
 	
 	private Player maxPlayer = Player.BLACK;
 	private Player minPlayer = Player.WHITE;
 	
 	private Move myBestMove;
 	
-	private List<Move> listChoosedMove = new ArrayList<Move>();
-	private List<Move> listTempChoosedMove = new ArrayList<Move>();
-	
 	private long timeGameStarted = 0;
 	
-	private int maxPointForThisRound = Integer.MIN_VALUE;
+	private Hashtable<Long, Move> whatIShouldPlay = new Hashtable<Long, Move>();
+	private Hashtable<Long, Integer> whatIShouldPlayPoint = new Hashtable<Long, Integer>();
+
+	private Move choosedMove;
+	private Move tempChoosedMove;
+	private int tempChoosedMovePoint;
 	
 	public NinjaClient() {
 		initTables();
@@ -108,18 +111,17 @@ public class NinjaClient {
 		}
 		
 		List<Move> listMove = new ArrayList<Move>();
-		List<Move> listGoodMoves = new ArrayList<Move>();
-		
-		// Last time we suggested some move for us for this round
+
+		// Try the move we suggested for this attack
 		if (isMyFirstMove(howManyMovesLeft)) {
-			// If the move is still valid
-			for (Move move : listChoosedMove) {
-				if (GameTable.isValidMove(gameTable, move)) {
-					// Play this move first
-					listMove.add(move);
+			// We are ready man!
+			if (whatIShouldPlay.containsKey(table.getTable())) {
+				Move move = whatIShouldPlay.get(table.getTable());
+				if (table.isValidMove(move)) {
+					listMove.add(move);	
+					System.out.println("I have been suggest to do this move: " + move.toString());
 				}
 			}
-			listChoosedMove.clear();
 		}
 		
 		listMove.addAll(GameTable.getAllMove(table, maxPlayer));
@@ -144,38 +146,25 @@ public class NinjaClient {
 				currentAlpha = score;
 				tempBestMove = move;
 				
+				// Let remember that move for the next round
+				if (isMySecondMove(howManyMovesLeft)) {
+					tempChoosedMove = new Move(tempBestMove);
+					tempChoosedMovePoint = currentAlpha;
+				}
+				
 				// In fact, I can play so good that I don't expect the opponent to 
 				// be enough stupid do the last move, let just leave.
 				if (currentAlpha >= beta) {					
 					return currentAlpha;
 				}
-								
-				// Let remember that move for the next round
-				if (isMySecondMove(howManyMovesLeft)) {
-					listGoodMoves.add(move);
-				}
-				
-				// This is the score to be beaten in my second move to be saved.
-				if (isMyFirstMove(howManyMovesLeft)) {
-					maxPointForThisRound = score;
-				}
 			}
-		}
-		
-		// I can expect him to play his last move and this result his good. Let save it for next round
-		if (isMySecondMove(howManyMovesLeft) && currentAlpha > maxPointForThisRound && // Je veux etre retenu par MaxNinja
-				currentAlpha < beta) { // Je veux être retenue par MinNinja
-			listTempChoosedMove = listGoodMoves;
 		}
 		
 		// Let save the move we should play
 		if (isMyFirstMove(howManyMovesLeft)) {
 			myBestMove = tempBestMove;
-			System.out.println("CHOOSED MOVE:" + currentAlpha);
-			maxPointForThisRound = Integer.MIN_VALUE;
-			for (Move move : listChoosedMove) {
-				System.out.println("I suggest this move: " + move.toString());
-			}
+			System.out.println("CHOOSED MOVE: " + myBestMove.toString() + " - Points: " + currentAlpha);
+			// Move to suggest
 		}
 		
 		return currentAlpha;
@@ -199,6 +188,22 @@ public class NinjaClient {
 				score -= 500;
 			}*/
 			
+			if (isOppFirstMove(howManyMovesLeft)){
+				long ltable = newGameTable.getTable();
+				if (whatIShouldPlay.containsKey(ltable)) {
+					if (tempChoosedMovePoint > whatIShouldPlayPoint.get(ltable)) {
+						whatIShouldPlay.remove(ltable);
+						whatIShouldPlay.put(ltable, tempChoosedMove);
+						
+						whatIShouldPlayPoint.remove(ltable);
+						whatIShouldPlayPoint.put(ltable, tempChoosedMovePoint);
+					}
+				} else {
+					whatIShouldPlay.put(ltable, tempChoosedMove);					
+					whatIShouldPlayPoint.put(ltable, tempChoosedMovePoint);			
+				}
+			}
+			
 			// This is the best score so far
 			if (score < currentBeta) {
 				currentBeta = score;
@@ -211,17 +216,13 @@ public class NinjaClient {
 			}
 		}
 		
-		// This move is the best so far
-		if (isOppFirstMove(howManyMovesLeft) && currentBeta > maxPointForThisRound) {
-			listChoosedMove = listTempChoosedMove;
-		}
 		return currentBeta;
 	}
 
 	// TODO: To be removed
 	// We should never get stuck in this function.
 	private void isValid(GameTable newGameTable, Move move) {
-		if (!GameTable.isValidMove(newGameTable, move)) {
+		if (!newGameTable.isValidMove(move)) {
 			while (true) {
 				System.out.println("INVALID MOVE");
 				GameTable.printGameTable(newGameTable);
@@ -256,8 +257,6 @@ public class NinjaClient {
 	
 	private void buildDecisionTree() {
 	}
-	
-	
 	
 	private void sendMove() {
 		long time = System.currentTimeMillis();
