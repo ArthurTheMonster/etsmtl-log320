@@ -49,13 +49,11 @@ public class GameTable {
 		ourTable = ourTable &~move.initialPos;
 		ourTable |= move.finalPos;
 		
-		if ((oppTable & move.finalPos) > 0) {
+		if ((oppTable & move.finalPos) != 0) {
 			if (move.player == Player.WHITE) {
 				gameTable.setBlackPawnCount(gameTable.getBlackPawnCount()-1);
-				assert(gameTable.getBlackPawnCount() >= 0);
 			} else {
 				gameTable.setWhitePawnCount(gameTable.getWhitePawnCount()-1);
-				assert(gameTable.getWhitePawnCount() >= 0);
 			}
 			oppTable = oppTable &~move.finalPos;
 			if (move.player == Player.WHITE) {
@@ -86,7 +84,7 @@ public class GameTable {
 			oppTable = gameTable.whiteTable;
 		}
 		
-		for (int i = 0; i < 63; i++) {
+		for (int i = 0; i < 64; i++) {
 			long currentPawn = myTable & 1l << i;
 			if (player.equals(Player.WHITE)) {
 				currentPawn = myTable & -9223372036854775808l >>> i;
@@ -101,8 +99,20 @@ public class GameTable {
 		
 	}
 	
-	private static List<Move> GetValidMoves(Player player, long pawn, long myTable, long oppTable) {
+	private static List<Move> GetValidMoves(Player player, long pawn, long myTable, long oppTable) {	
 		List<Move> validMovePawn = new ArrayList<Move>();
+		
+		if (player == Player.WHITE) {
+			if (pawn == -9223372036854775808l || pawn > 36028797018963968l) {
+				return validMovePawn;
+			}
+		}
+		else {
+			if (pawn <= 128l && pawn != -9223372036854775808l) {
+				return validMovePawn;				
+			}
+		}
+		
 		long newPawn = 0;
 		
 		//Left
@@ -126,6 +136,29 @@ public class GameTable {
 		return validMovePawn;
 	}
 
+	public static boolean isValidMove(GameTable table, Move move) {
+		// If I have a pawn a this pos
+		long myTable = table.blackTable;
+		long oppTable = table.whiteTable;
+		if (move.player.equals(Player.WHITE)) {
+			myTable = table.whiteTable;
+			oppTable = table.blackTable;
+		}
+		
+		if ((move.initialPos & myTable) == 0) {
+			return false;
+		}
+		
+		// We go straight
+		if (move.move == 8) {
+			return isStraightMoveValid(move.finalPos, myTable, oppTable);
+		}
+		// As long as I don't have a pawn on this slot..
+		else {
+			return ((move.finalPos & myTable) == 0);
+		}
+	}
+	
 	private static boolean isLeftDiagonalValid(long newPawn, long myTable) {
 		// If I can move to left (i.e. not first column)
 		if (Math.log(newPawn)/Math.log(2)%8 < 7) {
@@ -179,31 +212,31 @@ public class GameTable {
 					if (player == Player.WHITE) {
 						// We should most of our pawn with the first if
 						if (currentPawn == -9223372036854775808l) {
-							score += 128;
+							score += 10000;
 						}
 						else if (currentPawn <= 128l) {
 							score += 1;
 						} 
 						else if (currentPawn <= 32768l) {
-							score += 4;	
+							score += 2;	
 						}
 						else if (currentPawn <= 8388608l) {
-							score += 16;
+							score += 4;
 						}
 						else if (currentPawn <= 2147483648l) {
-							score += 64;
+							score += 8;
 						}
 						else if (currentPawn <= 549755813888l) {
-							score += 256;
+							score += 16;
 						}
 						else if (currentPawn <= 140737488355328l) {
-							score += 1024;
+							score += 32;
 						}
 						else if (currentPawn <= 36028797018963968l) {
-							score += 4048;
+							score += 64;
 						}
 						else if (currentPawn <= 4611686018427387904l) {
-							score += 16000;
+							score += 10000;
 						}
 						else {
 							assert(false);
@@ -218,27 +251,28 @@ public class GameTable {
 							score += 1;
 						}
 						else if (currentPawn > 140737488355328l) {
-							score += 4;
+							score += 2;
 						}
 						else if (currentPawn > 549755813888l) {
-							score += 16;
+							score += 4;
 						}
 						else if (currentPawn > 2147483648l) {
-							score += 64;
+							score += 8;
 						}
 						else if (currentPawn > 8388608l) {
-							score += 256;
+							score += 16;
 						}
 						else if (currentPawn > 32768l) {
-							score += 1024;	
+							score += 32;	
 						}
 						else if (currentPawn > 128l) {
-							score += 4048;
+							score += 64;
 						}
 						else if (currentPawn > 0) {
-							score += 16000;
+							score += 10000;
 						}
 						else {
+							System.out.println("### Error: This shouldn't happen! Unknown row.");
 							assert(false);
 						}
 					}
@@ -251,16 +285,8 @@ public class GameTable {
 				}
 			}
 		}
-		int ans = 0;
-		assert(myPawnCount > 0);
-		try {
-			ans = transposition.get(myTable);
-		} catch (Exception e) {
-			System.out.println("Fuck. We crashed. Don't worry bud! I got it! Everything is under control.");
-			// In fact, it's not under control. Why the fuck do we crash here.
-			printTable(myTable);
-		}
-		return ans;
+
+		return transposition.get(myTable);
 	}
 
 	public static void printGameTable(GameTable gameTable) {
