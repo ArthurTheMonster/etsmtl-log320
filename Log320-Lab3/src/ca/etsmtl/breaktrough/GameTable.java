@@ -15,8 +15,8 @@ public class GameTable {
 	public long blackTable;
 	public long whiteTable;
 	
-	private int blackPawnCount;
-	private int whitePawnCount;
+	public int blackPawnCount;
+	public int whitePawnCount;
 	
 	public GameTable() {
 		blackTable = STARTING_BLACK_TABLE;
@@ -28,8 +28,8 @@ public class GameTable {
 	public GameTable(GameTable gameTable) {
 		blackTable = gameTable.blackTable;
 		whiteTable = gameTable.whiteTable;
-		setBlackPawnCount(gameTable.getBlackPawnCount());
-		setWhitePawnCount(gameTable.getWhitePawnCount());
+		blackPawnCount =gameTable.blackPawnCount;
+		whitePawnCount = gameTable.whitePawnCount;
 	}
 	
 	public long getTable(Player player) {
@@ -39,46 +39,35 @@ public class GameTable {
 		return blackTable;
 	}
 	
+	public int getTableCount(Player player) {
+		if (player.equals(Player.WHITE)) {
+			return whitePawnCount;
+		}
+		return blackPawnCount;		
+	}
+	
 	public long getTable() {
 		return (blackTable | whiteTable);
 	}
 	
 	// The move MUST be valid - won't be validated
-	public static void move(GameTable gameTable, Move move) {
-		long ourTable;
-		long oppTable;
-		
+	public void move(Move move) {
 		if (move.player == Player.WHITE) {
-			ourTable = gameTable.whiteTable;
-			oppTable = gameTable.blackTable;
+			whiteTable = whiteTable &~move.initialPos;
+			whiteTable |= move.finalPos;
+			if ((blackTable & move.finalPos) != 0) {
+				blackPawnCount--;
+			}
+			blackTable = blackTable &~move.finalPos;
 		}
 		else {
-			ourTable = gameTable.blackTable;
-			oppTable = gameTable.whiteTable;
-		}
-		
-		ourTable = ourTable &~move.initialPos;
-		ourTable |= move.finalPos;
-		
-		if ((oppTable & move.finalPos) != 0) {
-			if (move.player == Player.WHITE) {
-				gameTable.setBlackPawnCount(gameTable.getBlackPawnCount()-1);
-			} else {
-				gameTable.setWhitePawnCount(gameTable.getWhitePawnCount()-1);
+			blackTable = blackTable &~move.initialPos;
+			blackTable |= move.finalPos;
+			if ((whiteTable & move.finalPos) != 0) {
+				whitePawnCount--;
 			}
-			oppTable = oppTable &~move.finalPos;
-			if (move.player == Player.WHITE) {
-				gameTable.blackTable = oppTable;
-			} else {
-				gameTable.whiteTable = oppTable;
-			}
-		}
-		
-		if (move.player == Player.WHITE) {
-			gameTable.whiteTable = ourTable;
-		} else {
-			gameTable.blackTable = ourTable;
-		}
+			whiteTable = whiteTable &~move.finalPos;
+		}		
 	}
 	
 	public static List<Move> getAllMove(GameTable gameTable, Player player) {
@@ -102,7 +91,7 @@ public class GameTable {
 			}
 			
 			if (currentPawn != 0) {
-				validMovePawns.addAll(GetValidMoves(player, currentPawn, myTable, oppTable));
+				validMovePawns.addAll(getValidMoves(player, currentPawn, myTable, oppTable));
 			}
 		}
 		
@@ -110,7 +99,7 @@ public class GameTable {
 		
 	}
 	
-	private static List<Move> GetValidMoves(Player player, long pawn, long myTable, long oppTable) {	
+	private static List<Move> getValidMoves(Player player, long pawn, long myTable, long oppTable) {	
 		List<Move> validMovePawn = new ArrayList<Move>();
 		
 		if (player == Player.WHITE) {
@@ -127,19 +116,19 @@ public class GameTable {
 		long newPawn = 0;
 		
 		//Left
-		newPawn = (player == Player.BLACK ? pawn >> 9 : pawn << 7);
+		newPawn = (player == Player.BLACK ? pawn >>> 9 : pawn << 7);
 		if (isLeftDiagonalValid(newPawn, myTable)) {
 			validMovePawn.add(new Move(pawn, player == Player.BLACK ? 9 : 7, player));
 		}
 
 		//Straight
-		newPawn = (player == Player.BLACK ? pawn >> 8 : pawn << 8);
+		newPawn = (player == Player.BLACK ? pawn >>> 8 : pawn << 8);
 		if (isStraightMoveValid(newPawn, myTable, oppTable)) {
 			validMovePawn.add(new Move(pawn, 8, player));
 		}
 		
 		//Right
-		newPawn = (player == Player.BLACK ? pawn >> 7 : pawn << 9);
+		newPawn = (player == Player.BLACK ? pawn >>> 7 : pawn << 9);
 		if (isRightDiagonalValid(newPawn, myTable)) {
 			validMovePawn.add(new Move(pawn, player == Player.BLACK ? 7 : 9, player));
 		}
@@ -199,6 +188,31 @@ public class GameTable {
 		return false;
 	}
 	
+	public boolean isInDanger(long pawn, Player player) {
+		if (player.equals(Player.BLACK)) {
+			long newPos = pawn >>> 9;
+			
+			if ((whiteTable & newPos) != 0) {
+				return true;
+			}
+			else {
+				newPos = pawn >>> 7;
+				return (whiteTable & newPos) != 0;
+			}
+		}
+		else {
+			long newPos = pawn << 7;
+			
+			if ((blackTable & newPos) != 0) {
+				return true;
+			}
+			else {
+				newPos = pawn << 9;
+				return (blackTable & newPos) != 0;
+			}			
+		}
+	}
+	
 	public int getTableScore(Player player) {	
 		if (player.equals(Player.BLACK)) {
 			return getPlayerScore(player) - getPlayerScore(Player.WHITE);
@@ -216,12 +230,10 @@ public class GameTable {
 			myPawnCount = whitePawnCount;
 		}
 		if (!transposition.containsKey(myTable)) {
-		
 			for (int i = 0; i < 64; i++) {
-				long currentPawn = myTable & 1l << i;
+				long currentPawn = myTable & (1l << i);
 				if (currentPawn != 0) {
-					if (player == Player.WHITE) {
-						// We should most of our pawn with the first if
+					if (player.equals(Player.WHITE)) {		
 						if (currentPawn == -9223372036854775808l) {
 							score += 10000;
 						}
@@ -250,11 +262,10 @@ public class GameTable {
 							score += 10000;
 						}
 						else {
-							assert(false);
+							System.out.println("### Error: This shouldn't happen! Unknown row.");
 						}
 					}
 					else {
-						// We should most of our pawn with the first if
 						if (currentPawn == -9223372036854775808l) {
 							score += 1;
 						}
@@ -284,10 +295,8 @@ public class GameTable {
 						}
 						else {
 							System.out.println("### Error: This shouldn't happen! Unknown row.");
-							assert(false);
 						}
 					}
-				
 					myPawnCount--;
 					if (myPawnCount == 0) {
 						transposition.put(myTable, score);
@@ -296,7 +305,6 @@ public class GameTable {
 				}
 			}
 		}
-
 		return transposition.get(myTable);
 	}
 
@@ -309,22 +317,6 @@ public class GameTable {
 		for (int i = 0; i < 8; i++) {
 			System.out.println(new StringBuffer(stringTable.substring(i * 8, (i + 1) * 8)).reverse());
 		}
-	}
-	
-	public int getBlackPawnCount() {
-		return blackPawnCount;
-	}
-
-	public void setBlackPawnCount(int blackPawnCount) {
-		this.blackPawnCount = blackPawnCount;
-	}
-
-	public int getWhitePawnCount() {
-		return whitePawnCount;
-	}
-
-	public void setWhitePawnCount(int whitePawnCount) {
-		this.whitePawnCount = whitePawnCount;
 	}
 
 }
