@@ -18,9 +18,9 @@ public class NinjaClient {
 	private BufferedInputStream input;
 	private BufferedOutputStream output;
 	
-	private String[] firstMoves = { "E2 - E3", "E3 - E4" };
+	private String[] firstMoves = { "E2 - E3" };
 	
-	private long TIME_TO_THINK = 5750;
+	private long TIME_TO_THINK = 1200;
 	
 	private int nbMovePlayed = 0;
 	
@@ -31,14 +31,16 @@ public class NinjaClient {
 	
 	private GameTable gameTable = new GameTable();
 	
-	private int defaultDeepnessTree = 6;
+	private int defaultDeepnessTree = 5;
 	
 	private Player maxPlayer = Player.BLACK;
 	private Player minPlayer = Player.WHITE;
 	
 	private long timeGameStarted = 0;
 	
-	TheBrain brain = new TheBrain(maxPlayer, minPlayer);
+	private static int brainCount = 0;
+	
+	TheBrain brain = new TheBrain(maxPlayer, minPlayer, brainCount++);
 	
 	public NinjaClient() {
 		initCommunication();
@@ -61,8 +63,7 @@ public class NinjaClient {
 		timeGameStarted = System.currentTimeMillis();
 		while (!gameCompleted) {
 			readOpponentMove();
-			brain.stop();
-			buildDecisionTree();
+			brain.stopBrain();
 			sendMove();
 		}
 	}
@@ -97,11 +98,8 @@ public class NinjaClient {
 		return new Move(move[0], move[1], player);
 	}
 	
-	private void buildDecisionTree() {
-	}
-	
 	private void sendMove() {
-		brain = new TheBrain(maxPlayer, minPlayer);
+		brain = new TheBrain(maxPlayer, minPlayer, brainCount++);
 			
 		long timeStartThinking = System.currentTimeMillis();			
 		

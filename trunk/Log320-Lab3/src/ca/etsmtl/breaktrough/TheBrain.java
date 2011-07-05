@@ -23,8 +23,11 @@ public class TheBrain extends Thread {
 	private Player maxPlayer;
 	private Player minPlayer;
 	
+	private boolean running = false;
 	
-	public TheBrain(Player maxPlayer, Player minPlayer) {
+	private int brainId;
+	
+	public TheBrain(Player maxPlayer, Player minPlayer, int brainId) {
 		gameTable = null;
 		deepnessTree = 0;
 		myBestMove = null;
@@ -33,6 +36,7 @@ public class TheBrain extends Thread {
 		
 		this.maxPlayer = maxPlayer;
 		this.minPlayer = minPlayer;
+		this.brainId = brainId;
 	}
 	
 	public Move getBestMove() {
@@ -48,13 +52,20 @@ public class TheBrain extends Thread {
 	}
 	
 	public void run() {
-		while (true) {
+		System.out.println("Brain " + brainId + " is running");
+		while (running) {
 			NinjaMax(gameTable, deepnessTree,Integer.MIN_VALUE,Integer.MAX_VALUE);
 			deepnessTree = deepnessTree + 1;
 		}
+		System.out.println("Brain " + brainId + " is stopped");
+	}
+	
+	public void stopBrain() {
+		running = false;
 	}
 	
 	public void prepareTheBrain(GameTable gameTable, int deepnessTree) {
+		running = true;
 		this.gameTable = new GameTable(gameTable);
 		this.deepnessTree = deepnessTree;
 		myBestMove = null;
@@ -63,7 +74,7 @@ public class TheBrain extends Thread {
 	private int NinjaMax(GameTable table, int howManyMovesLeft, int alpha, int beta) {
 		Move tempBestMove = null;
 		
-		if (isLastMove(howManyMovesLeft)) {
+		if (isLastMove(howManyMovesLeft) || !running) {
 			return evalTable(table, maxPlayer);
 		}
 		
@@ -75,15 +86,19 @@ public class TheBrain extends Thread {
 			// We are ready man!
 			if (whatIShouldPlay.containsKey(table.getTable())) {
 				Move move = whatIShouldPlay.get(table.getTable());
-				if (table.isValidMove(move) && !isSuicidal(table, move)) {
-					mySuggestedMove = move;
-					listMove.add(move);	
-					
-					deepnessSuggested = whatIShouldPlayDeepness.get(table.getTable());
-					if (deepnessSuggested < deepnessTree) {
-						System.out.println("I have been suggest to do this move: " + move.toString());
-					}
+				//if (table.isValidMove(move) && !isSuicidal(table, move)) {
+				if (!table.isValidMove(move)) {
+					System.out.println("wuuut");
+					GameTable.printTable(table.getTable());
 				}
+				mySuggestedMove = move;
+				listMove.add(move);	
+				
+				deepnessSuggested = whatIShouldPlayDeepness.get(table.getTable());
+				if (deepnessSuggested < deepnessTree) {
+					System.out.println("I have been suggest to do this move: " + move.toString());
+				}
+				//}
 			}
 		}
 		
@@ -102,11 +117,11 @@ public class TheBrain extends Thread {
 				newGameTable.move(move);
 				
 				// If this move is suicidal let's not do it.
-				if (isMyFirstMove(howManyMovesLeft)) {
+				/*if (isMyFirstMove(howManyMovesLeft)) {
 					if (isSuicidal(table, move)) {
 						continue;
 					}
-				}
+				}*/
 				
 				int score = NinjaMin(newGameTable, howManyMovesLeft-1,Math.max(alpha,currentAlpha),beta);
 				
@@ -135,7 +150,7 @@ public class TheBrain extends Thread {
 			myBestMove = tempBestMove;
 			
 			if (deepnessSuggested < deepnessTree) {
-				System.out.println("Hey. TheBrain solved the problem for level " + deepnessTree);
+				System.out.println("Hey. TheBrain " + brainId + " solved the problem for level " + deepnessTree);
 			}
 		}
 		
@@ -143,7 +158,7 @@ public class TheBrain extends Thread {
 	}
 	
 	private int NinjaMin(GameTable table, int howManyMovesLeft, int alpha, int beta) {	
-		if (isLastMove(howManyMovesLeft)) {
+		if (isLastMove(howManyMovesLeft) || !running) {
 			return evalTable(table, maxPlayer);
 		}
 			
@@ -159,9 +174,9 @@ public class TheBrain extends Thread {
 			// Let save the best move if we face that table
 			if (isOppFirstMove(howManyMovesLeft)){
 				long ltable = newGameTable.getTable();
-				whatIShouldPlay.put(ltable, tempChoosedMove);
+				whatIShouldPlay.put(ltable, new Move(tempChoosedMove));
 				whatIShouldPlayPoint.put(ltable, tempChoosedMovePoint);
-				whatIShouldPlayDeepness.put(ltable, deepnessTree-1);
+				whatIShouldPlayDeepness.put(ltable, deepnessTree-2);
 			}
 			
 			// This is the best score so far
