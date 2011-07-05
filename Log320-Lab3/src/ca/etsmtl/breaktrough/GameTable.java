@@ -85,7 +85,7 @@ public class GameTable {
 		}
 		
 		for (int i = 0; i < 64; i++) {
-			long currentPawn = myTable & 1l << i;
+			long currentPawn = myTable & 1l << i; // Black
 			if (player.equals(Player.WHITE)) {
 				currentPawn = myTable & -9223372036854775808l >>> i;
 			}
