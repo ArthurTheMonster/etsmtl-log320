@@ -16,9 +16,9 @@ public class TheBrain extends Thread {
 	private Move tempChoosedMove;
 	private int tempChoosedMovePoint;
 	
-	private static Hashtable<Long, Move> whatIShouldPlay = new Hashtable<Long, Move>();
-	private static Hashtable<Long, Integer> whatIShouldPlayPoint = new Hashtable<Long, Integer>();
-	private static Hashtable<Long, Integer> whatIShouldPlayDeepness = new Hashtable<Long, Integer>();
+	private static Hashtable<CompositeKey, Move> whatIShouldPlay = new Hashtable<CompositeKey, Move>();
+	private static Hashtable<CompositeKey, Integer> whatIShouldPlayPoint = new Hashtable<CompositeKey, Integer>();
+	private static Hashtable<CompositeKey, Integer> whatIShouldPlayDeepness = new Hashtable<CompositeKey, Integer>();
 	
 	private Player maxPlayer;
 	private Player minPlayer;
@@ -52,12 +52,12 @@ public class TheBrain extends Thread {
 	}
 	
 	public void run() {
-		System.out.println("Brain " + brainId + " is running");
+		//System.out.println("Brain " + brainId + " is running");
 		while (running) {
 			NinjaMax(gameTable, deepnessTree,Integer.MIN_VALUE,Integer.MAX_VALUE);
 			deepnessTree = deepnessTree + 1;
 		}
-		System.out.println("Brain " + brainId + " is stopped");
+		//System.out.println("Brain " + brainId + " is stopped");
 	}
 	
 	public void stopBrain() {
@@ -80,25 +80,44 @@ public class TheBrain extends Thread {
 		
 		List<Move> listMove = new ArrayList<Move>();
 
-		int deepnessSuggested = 0;
+		int deepnessSuggested = 0; 
 		// Try the move we suggested for this attack
 		if (isMyFirstMove(howManyMovesLeft)) {
 			// We are ready man!
-			if (whatIShouldPlay.containsKey(table.getTable())) {
-				Move move = whatIShouldPlay.get(table.getTable());
-				//if (table.isValidMove(move) && !isSuicidal(table, move)) {
+			Move move = null;
+			int pointSuggested = 0;
+			CompositeKey key = new CompositeKey(table.getTable(maxPlayer),table.getTable(minPlayer));
+			if (whatIShouldPlay.containsKey(key)) {
+				move = whatIShouldPlay.get(key);
+				pointSuggested = whatIShouldPlayPoint.get(key);
+				deepnessSuggested = whatIShouldPlayDeepness.get(key);
+				
+				// TODO: To be removed
 				if (!table.isValidMove(move)) {
-					System.out.println("wuuut");
+					System.out.println("Damn you. I can't play that.");
 					GameTable.printTable(table.getTable());
 				}
+				/*if (isSuicidal(table, move)) {
+					System.out.println("Damn you. You suggest me to suicide.");
+					GameTable.printTable(table.getTable());
+				}*/
 				mySuggestedMove = move;
 				listMove.add(move);	
-				
-				deepnessSuggested = whatIShouldPlayDeepness.get(table.getTable());
+			
 				if (deepnessSuggested < deepnessTree) {
 					System.out.println("I have been suggest to do this move: " + move.toString());
 				}
-				//}
+			}
+
+			// Let's clear the table. But we want to keep our best move in case
+			// we have enough time to go one level deeper.
+			whatIShouldPlay.clear();
+			whatIShouldPlayPoint.clear();
+			whatIShouldPlayDeepness.clear();
+			if (move !=  null) {
+				whatIShouldPlay.put(key, move);
+				whatIShouldPlayPoint.put(key, pointSuggested);
+				whatIShouldPlayDeepness.put(key, deepnessSuggested);
 			}
 		}
 		
@@ -117,13 +136,15 @@ public class TheBrain extends Thread {
 				newGameTable.move(move);
 				
 				// If this move is suicidal let's not do it.
-				/*if (isMyFirstMove(howManyMovesLeft)) {
-					if (isSuicidal(table, move)) {
-						continue;
-					}
+				/*if (isSuicidal(table, move)) {
+					continue;
 				}*/
 				
 				int score = NinjaMin(newGameTable, howManyMovesLeft-1,Math.max(alpha,currentAlpha),beta);
+				
+				if (table.getTableCount(minPlayer) > newGameTable.getTableCount(minPlayer)) {
+					score += 50;
+				}
 				
 				// This is the best score so far						
 				if (score > currentAlpha) {
@@ -171,12 +192,16 @@ public class TheBrain extends Thread {
 			newGameTable.move(move);
 			int score = NinjaMax(newGameTable, howManyMovesLeft-1,alpha,Math.min(beta,currentBeta));
 			
+			if (table.getTableCount(maxPlayer) > newGameTable.getTableCount(maxPlayer)) {
+				score -= 50;
+			}
+			
 			// Let save the best move if we face that table
 			if (isOppFirstMove(howManyMovesLeft)){
-				long ltable = newGameTable.getTable();
-				whatIShouldPlay.put(ltable, new Move(tempChoosedMove));
-				whatIShouldPlayPoint.put(ltable, tempChoosedMovePoint);
-				whatIShouldPlayDeepness.put(ltable, deepnessTree-2);
+				CompositeKey key = new CompositeKey(newGameTable.getTable(maxPlayer),newGameTable.getTable(minPlayer));
+				whatIShouldPlay.put(key, new Move(tempChoosedMove));
+				whatIShouldPlayPoint.put(key, tempChoosedMovePoint);
+				whatIShouldPlayDeepness.put(key, deepnessTree-2);
 			}
 			
 			// This is the best score so far
@@ -195,7 +220,7 @@ public class TheBrain extends Thread {
 	}
 
 	// Désolé Simon, mais à partir d'aujourd'hui il est interdit à notre robot
-	// de "créer des ouvertures" :p Il est un peu trop con pour faire ce genre de truc
+	// de "créer des ouvertures" :p Il est un peu trop con pour ce genre d'initiative
 	private boolean isSuicidal(GameTable table, Move move) {
 		if (table.isInDanger(move.finalPos, maxPlayer)) {
 			if ((table.getTable(minPlayer) & move.finalPos) == 0) {

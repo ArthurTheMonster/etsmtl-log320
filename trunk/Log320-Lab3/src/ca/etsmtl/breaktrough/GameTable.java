@@ -103,11 +103,10 @@ public class GameTable {
 		List<Move> validMovePawn = new ArrayList<Move>();
 		
 		if (player == Player.WHITE) {
-			if (pawn == -9223372036854775808l || pawn > 36028797018963968l) {
+			if (pawn > 36028797018963968l || pawn == -9223372036854775808l) {
 				return validMovePawn;
 			}
-		}
-		else {
+		} else {
 			if (pawn <= 128l && pawn != -9223372036854775808l) {
 				return validMovePawn;				
 			}

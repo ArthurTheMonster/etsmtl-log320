@@ -18,9 +18,10 @@ public class NinjaClient {
 	private BufferedInputStream input;
 	private BufferedOutputStream output;
 	
-	private String[] firstMoves = { "E2 - E3" };
+	private String[] firstMovesWhite = { "E2 - E3" };
+	private String[] firstMovesBlack = { "E7 - E6" };
 	
-	private long TIME_TO_THINK = 1200;
+	private long TIME_TO_THINK = 5200;
 	
 	private int nbMovePlayed = 0;
 	
@@ -80,6 +81,7 @@ public class NinjaClient {
 				} else {
 					lastOpponentMove = parseMove(new String(opponentMoveBuffer), minPlayer);
 					gameTable.move(lastOpponentMove);
+					System.out.println("Opponent move: " + lastOpponentMove.toString());
 				}
 
 			} else if (cmd == '2') {
@@ -117,20 +119,25 @@ public class NinjaClient {
 		
 		int deepnessThinking = brain.howSmartAmI();
 		
-		if (nbMovePlayed < firstMoves.length) {
-			System.out.println("Oh we had a preset for this move, we use it.");
-			myBestMove = parseMove(firstMoves[nbMovePlayed], maxPlayer);
+		if (nbMovePlayed < firstMovesWhite.length) {
+			System.out.println("Oh. We had a preset for this move: use it.");
+			if (maxPlayer.equals(Player.WHITE)) {
+				myBestMove = parseMove(firstMovesWhite[nbMovePlayed], maxPlayer);
+			} else { 
+				myBestMove = parseMove(firstMovesBlack[nbMovePlayed], maxPlayer);
+			}
 			deepnessThinking = 0;
-		} else {
-			
 		}
-		System.out.println("CHOOSED MOVE: " + myBestMove.toString() + " - Deepness: " + deepnessThinking);
-		System.out.println("Last move time : " + ((int)System.currentTimeMillis() - (int)timeStartThinking) + " Game time elapsed: " + ((int)System.currentTimeMillis() - (int)timeGameStarted)+ "\n");
+		
 		try {
+			output.write(myBestMove.toString().getBytes(), 0, 7);	
+			output.flush();
+			
 			gameTable.move(myBestMove);
 			nbMovePlayed++;
-			output.write(myBestMove.toString().getBytes(), 0, 7);
-			output.flush();
+			System.out.println("CHOOSED MOVE: " + myBestMove.toString() + " - Deepness: " + deepnessThinking);
+			System.out.println("Last move time : " + ((int)System.currentTimeMillis() - (int)timeStartThinking) + " Game time elapsed: " + ((int)System.currentTimeMillis() - (int)timeGameStarted)+ "\n");
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
