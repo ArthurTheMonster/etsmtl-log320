@@ -10,13 +10,11 @@ public class Move {
 	
 	public Player player;
 	
-	public Move(String from, String to, Player player) {
-		long tableFrom = getPos(from);
-		long tableTo = getPos(to);
-		
-		initialPos = tableFrom;
+	public Move(String from, String to, Player player) {	
+		initialPos = getPos(from);
+		finalPos = getPos(to);
 		this.player = player;
-		setMove(tableFrom, tableTo);
+		setMove(initialPos, finalPos);
 	}
 	
 	public Move(Move copyMove) {
@@ -30,25 +28,20 @@ public class Move {
 		this.initialPos = initialPos;
 		this.move = move;
 		this.player = player;
-		setFinalPosition();
+		this.finalPos = player == Player.BLACK ? initialPos >>> move : initialPos << move;
 	}
 	
 	private long getPos(String pos) {
 		long xPos = (int)pos.charAt(0)-65;
 		long yPos = pos.charAt(1) - 49;
-		return 2l << (xPos + yPos * 8l) - 1;
+
+		return 1l << (xPos + yPos * 8l);
 	}
 	
 	private void setMove(long from, long to) {	
 		long result = (long)(Math.log(to)/Math.log(2)) - (long)(Math.log(from)/Math.log(2));
 		
 		move = (byte)Math.abs(result);
-		
-		setFinalPosition();
-	}
-	
-	private void setFinalPosition() {
-		finalPos = player == Player.BLACK ? initialPos >>> move : initialPos << move; 
 	}
 	
 	@Override
