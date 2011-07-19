@@ -21,7 +21,7 @@ public class NinjaClient {
 	private String[] firstMovesWhite = { "E2 - E3" };
 	private String[] firstMovesBlack = { "E7 - E6" };
 	
-	private long TIME_TO_THINK = 5200;
+	private final long TIME_TO_THINK = 5200;
 	
 	private int nbMovePlayed = 0;
 	
@@ -32,12 +32,10 @@ public class NinjaClient {
 	
 	private GameTable gameTable = new GameTable();
 	
-	private int defaultDeepnessTree = 5;
+	private final int defaultDeepnessTree = 5;
 	
 	private Player maxPlayer = Player.BLACK;
 	private Player minPlayer = Player.WHITE;
-	
-	private long timeGameStarted = 0;
 	
 	private static int brainCount = 0;
 	
@@ -61,7 +59,6 @@ public class NinjaClient {
 	}
 	
 	private void playBreaktrough() {
-		timeGameStarted = System.currentTimeMillis();
 		while (!gameCompleted) {
 			readOpponentMove();
 			brain.stopBrain();
@@ -101,17 +98,26 @@ public class NinjaClient {
 	}
 	
 	private void sendMove() {
+		while (!brain.isBrainStopped) {
+			try {
+				brain.join(2);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			//System.out.println("I'm waiting........");
+		}
 		brain = new TheBrain(maxPlayer, minPlayer, brainCount++);
 			
-		long timeStartThinking = System.currentTimeMillis();			
-		
 		brain.prepareTheBrain(gameTable, defaultDeepnessTree);
 		brain.start();
 		
-		while (true) {
-			if (System.currentTimeMillis() - timeStartThinking > TIME_TO_THINK) {
-				break;
-			}	
+		try {
+			brain.join(TIME_TO_THINK);
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
 
 		Move myBestMove = brain.getBestMove();
@@ -126,7 +132,7 @@ public class NinjaClient {
 			} else { 
 				myBestMove = parseMove(firstMovesBlack[nbMovePlayed], maxPlayer);
 			}
-			deepnessThinking = 0;
+			deepnessThinking = 999;
 		}
 		
 		try {
@@ -136,8 +142,7 @@ public class NinjaClient {
 			gameTable.move(myBestMove);
 			nbMovePlayed++;
 			System.out.println("CHOOSED MOVE: " + myBestMove.toString() + " - Deepness: " + deepnessThinking);
-			System.out.println("Last move time : " + ((int)System.currentTimeMillis() - (int)timeStartThinking) + " Game time elapsed: " + ((int)System.currentTimeMillis() - (int)timeGameStarted)+ "\n");
-
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
