@@ -18,6 +18,8 @@ public class GameTable {
 	public int blackPawnCount;
 	public int whitePawnCount;
 	
+	public int isGameOver = 0; // 0 = no, 1 = white win, 2 = black win
+	
 	public GameTable() {
 		blackTable = STARTING_BLACK_TABLE;
 		whiteTable = STARTING_WHITE_TABLE;
@@ -59,6 +61,10 @@ public class GameTable {
 				blackPawnCount--;
 			}
 			blackTable = blackTable &~move.finalPos;
+			
+			if (move.finalPos > 36028797018963968l || move.finalPos < 0) {
+				isGameOver = 1;
+			}
 		}
 		else {
 			blackTable = blackTable &~move.initialPos;
@@ -67,6 +73,10 @@ public class GameTable {
 				whitePawnCount--;
 			}
 			whiteTable = whiteTable &~move.finalPos;
+			
+			if (move.finalPos <= 128 && move.finalPos > 0) {
+				isGameOver = 2;
+			}
 		}		
 	}
 	
@@ -102,34 +112,80 @@ public class GameTable {
 	private static List<Move> getValidMoves(Player player, long pawn, long myTable, long oppTable) {	
 		List<Move> validMovePawn = new ArrayList<Move>();
 		
+		long newPawn = 0;
+		
+		// Ok this big chunk of code could have been reduce to 10 lines
+		// But we need performance, it means that we can't afford the log() and mod()
 		if (player == Player.WHITE) {
-			if (pawn > 36028797018963968l || pawn == -9223372036854775808l) {
+			// This pawn isn't on the last time
+			if (pawn <= 36028797018963968l && pawn >= 0) {
+				
+				// LEFT DIAGONAL - If this pawn isn't in the right column
+				if (pawn != 1 && pawn != 256 && pawn != 65536 && pawn != 16777216 && pawn != 4294967296l &&
+						pawn != 1099511627776l && pawn != 281474976710656l) {
+					
+					newPawn = pawn << 7;
+					// If I don't have a pawn at my final place
+					if ((myTable & newPawn) == 0) {
+						validMovePawn.add(new Move(pawn, 7, player));
+					}
+				}
+				
+				// RIGHT DIAGONAL - If this pawn isn't in the left column
+				if (pawn != 128 && pawn != 32768 && pawn != 8388608 && pawn != 2147483648l && pawn != 549755813888l &&
+						pawn != 140737488355328l && pawn != 36028797018963968l) {
+					
+					newPawn = pawn << 9;
+					// If I don't have a pawn at my final place
+					if ((myTable & newPawn) == 0) {
+						validMovePawn.add(new Move(pawn, 9, player));
+					}
+				}
+				
+				// FOWARD
+				newPawn = pawn << 8;
+				// If he and I don't have a pawn at my final place
+				if ((myTable & newPawn) == 0 && (oppTable & newPawn) == 0) {
+					validMovePawn.add(new Move(pawn, 8, player));
+				}				
+				
 				return validMovePawn;
 			}
 		} else {
-			if (pawn <= 128l && pawn != -9223372036854775808l) {
-				return validMovePawn;				
+			// This pawn isn't on the last line
+			if (pawn > 128l || pawn < 0) {
+			
+				// LEFT DIAGONAL - If this pawn isn't in the left column
+				if (pawn != -9223372036854775808l && pawn != 32768 && pawn != 8388608 && pawn != 2147483648l && pawn != 549755813888l &&
+						pawn != 140737488355328l && pawn != 36028797018963968l) {
+					
+					newPawn = pawn >>> 7;
+					// If I don't have a pawn at my final place
+					if ((myTable & newPawn) == 0) {
+						validMovePawn.add(new Move(pawn, 7, player));
+					}
+				}
+				
+				// RIGHT DIAGONAL - If this pawn isn't in the right column
+				if (pawn != 256 && pawn != 65536 && pawn != 16777216 && pawn != 4294967296l &&
+						pawn != 1099511627776l && pawn != 281474976710656l && pawn != 72057594037927936l) {
+					
+					newPawn = pawn >>> 9;
+					// If I don't have a pawn at my final place
+					if ((myTable & newPawn) == 0) {
+						validMovePawn.add(new Move(pawn, 9, player));
+					}
+				}
+				
+				// FOWARD
+				newPawn = pawn >>> 8;
+				// If he and I don't have a pawn at my final place
+				if ((myTable & newPawn) == 0 && (oppTable & newPawn) == 0) {
+					validMovePawn.add(new Move(pawn, 8, player));
+				}				
+				
+				return validMovePawn;
 			}
-		}
-		
-		long newPawn = 0;
-		
-		//Left
-		newPawn = (player == Player.BLACK ? pawn >>> 9 : pawn << 7);
-		if (isLeftDiagonalValid(newPawn, myTable)) {
-			validMovePawn.add(new Move(pawn, player == Player.BLACK ? 9 : 7, player));
-		}
-
-		//Straight
-		newPawn = (player == Player.BLACK ? pawn >>> 8 : pawn << 8);
-		if (isStraightMoveValid(newPawn, myTable, oppTable)) {
-			validMovePawn.add(new Move(pawn, 8, player));
-		}
-		
-		//Right
-		newPawn = (player == Player.BLACK ? pawn >>> 7 : pawn << 9);
-		if (isRightDiagonalValid(newPawn, myTable)) {
-			validMovePawn.add(new Move(pawn, player == Player.BLACK ? 7 : 9, player));
 		}
 		
 		return validMovePawn;
@@ -158,17 +214,6 @@ public class GameTable {
 		}
 	}
 	
-	private static boolean isLeftDiagonalValid(long newPawn, long myTable) {
-		// If I can move to left (i.e. not first column)
-		if (Math.log(newPawn)/Math.log(2)%8 < 7) {
-			// If I don't have one of my own pawn at this slot
-			if ((myTable & newPawn) == 0) {
-				return true;
-			}
-		}	
-		return false;
-	}
-
 	private static boolean isStraightMoveValid(long newPawn, long myTable, long oppTable) {
 		if ((myTable & newPawn) == 0 && (oppTable & newPawn) == 0) {
 			return true;
@@ -176,18 +221,7 @@ public class GameTable {
 		return false;
 	}
 	
-	private static boolean isRightDiagonalValid(long newPawn, long myTable) {
-		// If I can move to right (i.e. not the last column)
-		if (Math.log(newPawn)/Math.log(2)%8 > 0) {
-			// If I don't have one of my own pawn at this slot
-			if ((myTable & newPawn) == 0) {
-				return true;
-			}
-		}	
-		return false;
-	}
-	
-	public boolean isInDanger(long pawn, Player player) {
+	/*public boolean isInDanger(long pawn, Player player) {
 		if (player.equals(Player.BLACK)) {
 			long newPos = pawn >>> 9;
 			
@@ -210,7 +244,7 @@ public class GameTable {
 				return (blackTable & newPos) != 0;
 			}			
 		}
-	}
+	}*/
 	
 	public int getTableScore(Player player) {	
 		if (player.equals(Player.BLACK)) {

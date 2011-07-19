@@ -28,6 +28,6 @@ public class CompositeKey
     //@Override
     public int hashCode()
     {
-    	return (int)((a_ | b_)%2^32);
+    	return (int)( ( (a_ | b_)>>>16 ) &4294967295l);
     }
 }
