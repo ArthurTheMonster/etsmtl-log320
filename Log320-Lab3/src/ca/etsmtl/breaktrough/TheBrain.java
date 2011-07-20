@@ -65,7 +65,7 @@ public class TheBrain extends Thread {
 	public void run() {
 		isBrainStopped = false;
 		System.out.println("Brain " + brainId + " is running");
-		while (running) {
+		while (running && deepnessTree < 50) {
 			NinjaMax(gameTable, deepnessTree,Integer.MIN_VALUE,Integer.MAX_VALUE);
 			deepnessTree = deepnessTree + 1;
 		}
