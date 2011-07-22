@@ -86,7 +86,6 @@ public class TheBrain extends Thread {
 	}
 	
 	private int NinjaMax(GameTable table, int howManyMovesLeft, int alpha, int beta) {
-
 		int currentAlpha = Integer.MIN_VALUE;
 		
 		if (!running) {
@@ -102,13 +101,12 @@ public class TheBrain extends Thread {
 		int deepnessSuggested = 0; 
 		// Try the move we suggested for this attack
 		if (isMyFirstMove(howManyMovesLeft)) {
-			// We are ready man!
 			Move move = null;
 			
 			long key = table.getTable();
 			if (whatIShouldPlay.containsKey(key)) {
+				// We are ready for this!
 				move = whatIShouldPlay.get(key);
-				//pointSuggested = whatIShouldPlayPoint.get(key);
 				deepnessSuggested = whatIShouldPlayDeepness.get(key);
 				
 				if (table.isValidMove(move)) {
@@ -208,9 +206,8 @@ public class TheBrain extends Thread {
 			GameTable newGameTable = new GameTable(table);
 			newGameTable.move(move);
 			
-			// We just lost, that really sucks (we should never drop in that if!!!!)
+			// We just lost, that really suck
 			if(newGameTable.isGameOver == iMinPlayer) {
-				// This way we want will choose a move that make us win right away
 				return -10000*howManyMovesLeft;
 			}
 			
@@ -221,7 +218,7 @@ public class TheBrain extends Thread {
 				score -= 30;
 			}
 			
-			// Let save the best move if we face that table
+			// Let save the best move if we see that table again
 			if (isOppFirstMove(howManyMovesLeft) && running){
 				long key = newGameTable.getTable();
 				whatIShouldPlay.put(key, new Move(tempChoosedMove));
@@ -243,29 +240,6 @@ public class TheBrain extends Thread {
 		return currentBeta;
 	}
 
-	/*private boolean isSuicidal(GameTable table, Move move) {
-		if (table.isInDanger(move.finalPos, maxPlayer)) {
-			if ((table.getTable(minPlayer) & move.finalPos) == 0) {
-				return true;
-			}	
-		}
-		return false;
-	}*/
-	
-	// TODO: To be removed
-	// We should never get stuck in this function.
-	/*private boolean isValid(GameTable newGameTable, Move move) {
-		if (!newGameTable.isValidMove(move)) {
-			//while (true) {
-				System.out.println("INVALID MOVE");
-				GameTable.printGameTable(newGameTable);
-				System.out.println(move.toString());
-				return false;
-			//}
-		}
-		return true;
-	}*/
-	
 	private boolean isMyFirstMove(int howManyMovesLeft) {
 		return howManyMovesLeft == deepnessTree;
 	}
