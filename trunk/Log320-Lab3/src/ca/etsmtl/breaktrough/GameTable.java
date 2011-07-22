@@ -10,7 +10,7 @@ public class GameTable {
 	private static final long STARTING_BLACK_TABLE = -281474976710656l;
 	private static final long STARTING_WHITE_TABLE = 65535l;
 	
-	public static Hashtable<Long, Integer> transposition = new Hashtable<Long, Integer>(1000000);
+	public static Hashtable<Long, Integer> transposition = new Hashtable<Long, Integer>(500000);
 
 	public long whiteTable;
 	public long blackTable;
@@ -18,8 +18,8 @@ public class GameTable {
 	public int whitePawnCount;
 	public int blackPawnCount;
 	
-	public int[] tblWhitePawnCount = {2, 2, 2, 2, 2, 2, 2, 2 };
-	public int[] tblBlackPawnCount = {2, 2, 2, 2, 2, 2, 2, 2 };
+	/*public int[] tblWhitePawnCount = {2, 2, 2, 2, 2, 2, 2, 2 };
+	public int[] tblBlackPawnCount = {2, 2, 2, 2, 2, 2, 2, 2 };*/
 	
 	public int isGameOver = 0; // 0 = no, 1 = white win, 2 = black win
 	
@@ -35,8 +35,8 @@ public class GameTable {
 		whiteTable = gameTable.whiteTable;
 		blackPawnCount =gameTable.blackPawnCount;
 		whitePawnCount = gameTable.whitePawnCount;
-		System.arraycopy(gameTable.tblWhitePawnCount, 0, tblWhitePawnCount, 0, 8);
-		System.arraycopy(gameTable.tblBlackPawnCount, 0, tblBlackPawnCount, 0, 8);
+		/*System.arraycopy(gameTable.tblWhitePawnCount, 0, tblWhitePawnCount, 0, 8);
+		System.arraycopy(gameTable.tblBlackPawnCount, 0, tblBlackPawnCount, 0, 8);*/
 	}
 	
 	public long getTable(Player player) {
@@ -59,16 +59,19 @@ public class GameTable {
 	
 	// The move MUST be valid - won't be validated
 	public void move(Move move) {
-		int initialCol = getPawnColumn(move.initialPos);
-		int finalCol = getPawnColumn(move.finalPos);
+		/*int initialCol = getPawnColumn(move.initialPos);
+		int finalCol = initialCol;*/
 		
 		if (move.player == Player.WHITE) {
+			/*if (move.move == 7) { finalCol = initialCol - 1; }
+			else if (move.move == 9) { finalCol = initialCol + 1; }*/
+
 			whiteTable = whiteTable &~move.initialPos;
 			whiteTable |= move.finalPos;
 			
 			if ((blackTable & move.finalPos) != 0) {
 				blackPawnCount--;
-				tblBlackPawnCount[finalCol]--;
+				//tblBlackPawnCount[finalCol]--;
 			}
 			blackTable = blackTable &~move.finalPos;
 			
@@ -76,15 +79,18 @@ public class GameTable {
 				isGameOver = 1;
 			}
 			
-			tblWhitePawnCount[initialCol]--;
-			tblWhitePawnCount[finalCol]++;
+			/*tblWhitePawnCount[initialCol]--;
+			tblWhitePawnCount[finalCol]++;*/
 		}
 		else {
+			/*if (move.move == 7) { finalCol = initialCol + 1; }
+			else if (move.move == 9) { finalCol = initialCol - 1; }*/
+			
 			blackTable = blackTable &~move.initialPos;
 			blackTable |= move.finalPos;
 			if ((whiteTable & move.finalPos) != 0) {
 				whitePawnCount--;
-				tblWhitePawnCount[finalCol]--;
+				//tblWhitePawnCount[finalCol]--;
 			}
 			whiteTable = whiteTable &~move.finalPos;
 			
@@ -92,8 +98,8 @@ public class GameTable {
 				isGameOver = 2;
 			}
 			
-			tblBlackPawnCount[initialCol]--;
-			tblBlackPawnCount[finalCol]++;	
+			/*tblBlackPawnCount[initialCol]--;
+			tblBlackPawnCount[finalCol]++;	*/
 		}		
 	}
 	
@@ -126,41 +132,40 @@ public class GameTable {
 		
 	}
 	
-	private static int getPawnColumn(long pawn) {
+	// This is the most magnificent function I ever wrote.
+	/*private static int getPawnColumn(long pawn) {
 		if (pawn == 1 || pawn == 256 || pawn == 65536 || pawn == 16777216 || pawn == 4294967296L ||
 				pawn == 1099511627776L || pawn == 281474976710656L || pawn == 72057594037927936L) {
 			return 0;
 		}
-		if (pawn == 2 || pawn == 512 || pawn == 131072 || pawn == 33554432 || pawn == 8589934592l ||
+		else if (pawn == 2 || pawn == 512 || pawn == 131072 || pawn == 33554432 || pawn == 8589934592l ||
 				pawn == 2199023255552l || pawn == 562949953421312l || pawn == 144115188075855872l ) {
 			return 1;
 		}
-		if (pawn == 4 || pawn == 1024 || pawn == 262144 || pawn == 67108864 || pawn == 17179869184l ||
+		else if (pawn == 4 || pawn == 1024 || pawn == 262144 || pawn == 67108864 || pawn == 17179869184l ||
 				pawn == 4398046511104l || pawn == 1125899906842624l || pawn == 288230376151711744l ) {
 			return 2;
 		}
-		if (pawn == 8 || pawn == 2048 || pawn == 524288 || pawn == 134217728 || pawn == 34359738368l ||
+		else if (pawn == 8 || pawn == 2048 || pawn == 524288 || pawn == 134217728 || pawn == 34359738368l ||
 				pawn == 8796093022208l || pawn == 2251799813685248l || pawn == 576460752303423488l) {
 			return 3;
 		}
-		if (pawn == 16 || pawn == 4096 || pawn == 1048576 || pawn == 268435456 || pawn == 68719476736l ||
+		else if (pawn == 16 || pawn == 4096 || pawn == 1048576 || pawn == 268435456 || pawn == 68719476736l ||
 				pawn == 17592186044416l || pawn == 4503599627370496l || pawn == 1152921504606846976l) {
 			return 4;
 		}
-		if (pawn == 32 || pawn == 8192 || pawn == 2097152 || pawn == 536870912 || pawn == 137438953472l ||
+		else if (pawn == 32 || pawn == 8192 || pawn == 2097152 || pawn == 536870912 || pawn == 137438953472l ||
 				pawn == 35184372088832l || pawn == 9007199254740992l || pawn == 2305843009213693952l) {
 			return 5;
 		}
-		if (pawn == 64 || pawn == 16384 || pawn == 4194304 || pawn == 1073741824 || pawn == 274877906944L ||
+		else if (pawn == 64 || pawn == 16384 || pawn == 4194304 || pawn == 1073741824 || pawn == 274877906944L ||
 				pawn == 70368744177664L || pawn == 18014398509481984L || pawn == 4611686018427387904L) {
 			return 6;
 		}
-		if (pawn == 128 || pawn == 32768 || pawn == 8388608 || pawn == 2147483648l || pawn == 549755813888l ||
-				pawn == 140737488355328l || pawn == 36028797018963968l || pawn == -9223372036854775808l) {
-			return 7;
-		}
-		return 0;
-	}
+		/*else if (pawn == 128 || pawn == 32768 || pawn == 8388608 || pawn == 2147483648l || pawn == 549755813888l ||
+				pawn == 140737488355328l || pawn == 36028797018963968l || pawn == -9223372036854775808l) {*/
+	//	return 7;
+	//}
 	
 	private static List<Move> getValidMoves(Player player, long pawn, long myTable, long oppTable) {	
 		List<Move> validMovePawn = new ArrayList<Move>();
@@ -169,8 +174,9 @@ public class GameTable {
 		
 		// Ok this big chunk of code could have been reduce to 10 lines
 		// But we need performance, it means that we can't afford the log() and mod()
+		// Those line will be call over a million of time in a game.
 		if (player == Player.WHITE) {
-			// This pawn isn't on the last time
+			// This pawn isn't on the last line
 			if (pawn <= 36028797018963968l && pawn >= 0) {
 				
 				// LEFT DIAGONAL - If this pawn isn't in the right column
@@ -245,9 +251,9 @@ public class GameTable {
 	}
 
 	public boolean isValidMove(Move move) {
-		// If I have a pawn a this pos
 		long myTable = blackTable;
 		long oppTable = whiteTable;
+		
 		if (move.player.equals(Player.WHITE)) {
 			myTable = whiteTable;
 			oppTable = blackTable;
@@ -273,31 +279,6 @@ public class GameTable {
 		}
 		return false;
 	}
-	
-	/*public boolean isInDanger(long pawn, Player player) {
-		if (player.equals(Player.BLACK)) {
-			long newPos = pawn >>> 9;
-			
-			if ((whiteTable & newPos) != 0) {
-				return true;
-			}
-			else {
-				newPos = pawn >>> 7;
-				return (whiteTable & newPos) != 0;
-			}
-		}
-		else {
-			long newPos = pawn << 7;
-			
-			if ((blackTable & newPos) != 0) {
-				return true;
-			}
-			else {
-				newPos = pawn << 9;
-				return (blackTable & newPos) != 0;
-			}			
-		}
-	}*/
 	
 	public int getTableScore(Player player) {	
 		if (player.equals(Player.BLACK)) {
@@ -344,11 +325,8 @@ public class GameTable {
 						else if (currentPawn <= 36028797018963968l) {
 							score += 64;
 						}
-						else if (currentPawn <= 4611686018427387904l) {
-							score += 10000;
-						}
 						else {
-							System.out.println("### Error: This shouldn't happen! Unknown row.");
+							score += 10000;
 						}
 					}
 					else {
@@ -376,36 +354,33 @@ public class GameTable {
 						else if (currentPawn > 128l) {
 							score += 64;
 						}
-						else if (currentPawn > 0) {
-							score += 10000;
-						}
 						else {
-							System.out.println("### Error: This shouldn't happen! Unknown row.");
+							score += 10000;
 						}
 					}
 					myPawnCount--;
 					if (myPawnCount == 0) {
-						if (player == Player.WHITE) {
-							score += tblWhitePawnCount[0]-tblBlackPawnCount[0];
-							score += tblWhitePawnCount[1]-tblBlackPawnCount[1];	
-							for (int j = 1; j <= 6; j++) {
-								score = tblBlackPawnCount[j]-tblWhitePawnCount[j];
-								score += tblBlackPawnCount[j-1]-tblWhitePawnCount[j-1];
-								score += tblBlackPawnCount[j+1]-tblWhitePawnCount[j+1];
+						/*if (player == Player.WHITE) {
+							
+							
+							int index = 0;
+							int nbPawn = 0;
+							for (int j = 0; j <= 7; j++) {
+								if (tblBlackPawnCount[j])
 							}	
-							score = tblWhitePawnCount[6]-tblBlackPawnCount[6];
+							score += tblWhitePawnCount[6]-tblBlackPawnCount[6];
 							score += tblWhitePawnCount[7]-tblBlackPawnCount[7];	
 						} else {
-							score = tblBlackPawnCount[0]-tblWhitePawnCount[0];
+							score += tblBlackPawnCount[0]-tblWhitePawnCount[0];
 							score += tblBlackPawnCount[1]-tblWhitePawnCount[1];
 							for (int j = 1; j <= 6; j++) {
-								score = tblWhitePawnCount[j]-tblBlackPawnCount[j];
+								score += tblWhitePawnCount[j]-tblBlackPawnCount[j];
 								score += tblWhitePawnCount[j-1]-tblBlackPawnCount[j-1];
 								score += tblWhitePawnCount[j+1]-tblBlackPawnCount[j+1];
 							}	
-							score = tblBlackPawnCount[6]-tblWhitePawnCount[6];
+							score += tblBlackPawnCount[6]-tblWhitePawnCount[6];
 							score += tblBlackPawnCount[7]-tblWhitePawnCount[7];	
-						}				
+						}	*/			
 						
 						transposition.put(myTable, score);
 						break;
