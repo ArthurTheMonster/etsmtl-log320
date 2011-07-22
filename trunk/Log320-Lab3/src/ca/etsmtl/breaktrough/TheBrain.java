@@ -138,7 +138,7 @@ public class TheBrain extends Thread {
 				GameTable newGameTable = new GameTable(table);	
 				newGameTable.move(move);
 				
-				// We just win, that's awesome
+				// We just won, that's awesome
 				if(newGameTable.isGameOver == iMaxPlayer) {
 					if (isMySecondMove(howManyMovesLeft)) {
 						tempChoosedMove = move;
